@@ -1,0 +1,36 @@
+.conten{
+    display: flex;
+}
+.dd{
+    width: 100%;
+    margin-top: 2.5%;
+    height: 95.3%;
+    padding: 1%;
+}
+
+main{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.top{
+    background-color: brown;
+    padding: 1%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+table{
+    width: 100%;
+    margin-top: 3%;
+}
+
+tr:nth-child(even) {
+  background-color: #dddddd;
+}
+
+tr{
+    font-size: 130%;
+}

@@ -1,9 +1,18 @@
 import React from 'react'
+import '../css/proveedores.css'
+import Nav from '../components/nav/Nav'
+import Bar from '../components/bar/Bar'
 
 function Proveedores() {
   return (
-    <div>
-      proveedores
+    <div className='conten'>
+            <Bar></Bar>
+      <main>
+        <nav>
+          <Nav></Nav>
+        </nav>
+        <div></div>
+      </main>
     </div>
   )
 }

@@ -11,6 +11,7 @@ function Dashboard() {
         <nav>
           <Nav></Nav>
         </nav>
+        <div></div>
       </main>
     </div>
   )

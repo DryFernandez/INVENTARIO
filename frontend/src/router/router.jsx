@@ -16,7 +16,7 @@ const Path = () => {
   return (
     <Router>
       <Routes>
-      <Route path="/dashboard" element={<Dashboard/>}/>
+      <Route path="/" element={<Dashboard/>}/>
       <Route path="/nav" element={<Nav/>}/>
       <Route path="/bar" element={<Bar/>}/>
       <Route path="/productos" element={<Productos/>}/>

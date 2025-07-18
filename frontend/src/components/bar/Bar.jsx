@@ -19,12 +19,12 @@ function Bar() {
 
       <div className="bar-menu">
         <ul>
-          <li> <Link className='link' to={'/'} > <AiFillProduct className='icon-menu' /> PRODUCTOS </Link></li>
-          <li> <Link className='link' to={'/'} > <MdCategory className='icon-menu' /> CATEGORIAS </Link></li>
-          <li> <Link className='link' to={'/'} > <FaWindowRestore className='icon-menu' /> ALMACENES </Link></li>
-          <li> <Link className='link' to={'/'} > <FaBoxesStacked className='icon-menu' /> PROVEEDORES </Link></li>
-          <li> <Link className='link' to={'/'} > <BsCartCheckFill className='icon-menu' /> VENTAS </Link></li>
-          <li> <Link className='link' to={'/'} > <FaShoppingCart className='icon-menu' /> COMPRAS </Link></li>
+          <li> <Link className='link' to={'/productos'} > <AiFillProduct className='icon-menu' /> PRODUCTOS </Link></li>
+          <li> <Link className='link' to={'/categorias'} > <MdCategory className='icon-menu' /> CATEGORIAS </Link></li>
+          <li> <Link className='link' to={'/almacenes'} > <FaWindowRestore className='icon-menu' /> ALMACENES </Link></li>
+          <li> <Link className='link' to={'/proveedores'} > <FaBoxesStacked className='icon-menu' /> PROVEEDORES </Link></li>
+          <li> <Link className='link' to={'/ventas'} > <BsCartCheckFill className='icon-menu' /> VENTAS </Link></li>
+          <li> <Link className='link' to={'/compras'} > <FaShoppingCart className='icon-menu' /> COMPRAS </Link></li>
         </ul>
       </div>
     </div>
