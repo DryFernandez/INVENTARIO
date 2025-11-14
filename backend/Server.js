@@ -12,10 +12,7 @@ app.use(express.json()); // Parsea JSON en las requests
 app.use(morgan('dev')); // Logging de requests (opcional)
 
 // Conexión a MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/inventario', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
+mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/inventario')
 .then(() => console.log('✅ Conectado a MongoDB'))
 .catch(err => console.error('❌ Error de conexión a MongoDB:', err));
 

@@ -4,72 +4,19 @@ const Producto = require('../Models/Producto');
 const InventarioLog = require('../Models/InventarioLog');
 const { validarProducto } = require('../Validators/Producto');
 
-// GET / - Obtener productos con filtros avanzados
+// GET / - Obtener todos los productos
 router.get('/', async (req, res) => {
   try {
-    const { 
-      limit = 20,
-      page = 1,
-      search = '',
-      categoria,
-      minPrice,
-      maxPrice,
-      minStock,
-      maxStock,
-      sort = 'nombre',
-      order = 'asc'
-    } = req.query;
+    const productos = await Producto.find({ activo: true })
+      .populate('categoria', 'nombre')
+      .populate('almacen', 'nombre')
+      .populate('proveedor', 'nombre')
+      .sort({ nombre: 1 });
 
-    // Construir query de búsqueda
-    const query = {
-      estado: true,
-      $or: [
-        { codigo: { $regex: search, $options: 'i' } },
-        { nombre: { $regex: search, $options: 'i' } },
-        { descripcion: { $regex: search, $options: 'i' } }
-      ]
-    };
-
-    // Filtros adicionales
-    if (categoria) query.categoria = categoria;
-    if (minPrice || maxPrice) {
-      query.precio = {};
-      if (minPrice) query.precio.$gte = parseFloat(minPrice);
-      if (maxPrice) query.precio.$lte = parseFloat(maxPrice);
-    }
-    if (minStock || maxStock) {
-      query.stock = {};
-      if (minStock) query.stock.$gte = parseInt(minStock);
-      if (maxStock) query.stock.$lte = parseInt(maxStock);
-    }
-
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { [sort]: order === 'asc' ? 1 : -1 },
-      collation: { locale: 'es' }
-    };
-
-    const productos = await Producto.paginate(query, options);
-
-    res.status(200).json({
-      success: true,
-      data: productos.docs,
-      pagination: {
-        total: productos.totalDocs,
-        limit: productos.limit,
-        page: productos.page,
-        pages: productos.totalPages
-      }
-    });
-
+    res.status(200).json(productos);
   } catch (error) {
     console.error('Error en GET /productos:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener los productos',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ error: 'Error al obtener productos' });
   }
 });
 

@@ -7,38 +7,11 @@ const { checkAuth, checkRol } = require('../Middlewares/auth');
 // 1. GET / - Obtener todos los almacenes activos
 router.get('/', async (req, res) => {
   try {
-    const { limit, skip } = req.query;
-    
-    const query = Almacen.find({ estado: true });
-    
-    if (limit) {
-      const limitNumber = parseInt(limit);
-      if (!isNaN(limitNumber)) {
-        query.limit(limitNumber);
-      }
-    }
-    
-    if (skip) {
-      const skipNumber = parseInt(skip);
-      if (!isNaN(skipNumber)) {
-        query.skip(skipNumber);
-      }
-    }
-    
-    const almacenes = await query.exec();
-    
-    res.status(200).json({
-      success: true,
-      count: almacenes.length,
-      data: almacenes
-    });
-    
+    const almacenes = await Almacen.find({ activo: true }).sort({ nombre: 1 });
+    res.status(200).json(almacenes);
   } catch (error) {
     console.error('Error en GET /almacenes:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener los almacenes'
-    });
+    res.status(500).json({ error: 'Error al obtener almacenes' });
   }
 });
 

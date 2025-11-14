@@ -3,61 +3,14 @@ const router = express.Router();
 const Proveedor = require('../Models/Proveedor');
 const { validarProveedor } = require('../Validators/Proveedor');
 
-// GET / - Obtener todos los proveedores activos con filtros
+// GET / - Obtener todos los proveedores activos
 router.get('/', async (req, res) => {
   try {
-    const { 
-      limit = 20, 
-      page = 1, 
-      search = '',
-      ruc,
-      activo,
-      sort = 'nombre',
-      order = 'asc'
-    } = req.query;
-
-    // Construir query de búsqueda
-    const query = { estado: true };
-
-    // Filtros de búsqueda
-    if (search) {
-      query.$or = [
-        { nombre: { $regex: search, $options: 'i' } },
-        { email: { $regex: search, $options: 'i' } },
-        { telefono: { $regex: search, $options: 'i' } }
-      ];
-    }
-
-    if (ruc) query.ruc = ruc;
-    if (activo !== undefined) query.activo = activo === 'true';
-
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { [sort]: order === 'asc' ? 1 : -1 },
-      collation: { locale: 'es' }
-    };
-
-    const proveedores = await Proveedor.paginate(query, options);
-
-    res.status(200).json({
-      success: true,
-      data: proveedores.docs,
-      pagination: {
-        total: proveedores.totalDocs,
-        limit: proveedores.limit,
-        page: proveedores.page,
-        pages: proveedores.totalPages
-      }
-    });
-
+    const proveedores = await Proveedor.find({ activo: true }).sort({ nombre: 1 });
+    res.status(200).json(proveedores);
   } catch (error) {
     console.error('Error en GET /proveedores:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener los proveedores',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
+    res.status(500).json({ error: 'Error al obtener proveedores' });
   }
 });
 

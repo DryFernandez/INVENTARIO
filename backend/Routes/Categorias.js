@@ -7,37 +7,11 @@ const { checkAuth, checkRol } = require('../Middlewares/auth');
 // GET / - Obtener todas las categorías activas
 router.get('/', async (req, res) => {
   try {
-    const { limit = 10, page = 1, sort = 'nombre', order = 'asc' } = req.query;
-    
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { [sort]: order === 'asc' ? 1 : -1 },
-      collation: { locale: 'es' } // Para ordenar correctamente caracteres especiales
-    };
-
-    const categorias = await Categoria.paginate(
-      { estado: true }, 
-      options
-    );
-
-    res.status(200).json({
-      success: true,
-      data: categorias.docs,
-      pagination: {
-        total: categorias.totalDocs,
-        limit: categorias.limit,
-        page: categorias.page,
-        pages: categorias.totalPages
-      }
-    });
-
+    const categorias = await Categoria.find({ activo: true }).sort({ nombre: 1 });
+    res.status(200).json(categorias);
   } catch (error) {
     console.error('Error en GET /categorias:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al obtener las categorías'
-    });
+    res.status(500).json({ error: 'Error al obtener categorías' });
   }
 });
 
