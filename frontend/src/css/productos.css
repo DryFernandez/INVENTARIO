@@ -5,13 +5,13 @@
 }
 
 .productos-main {
-    flex: 1;
-    margin-left: 250px;
-    display: flex;
-    flex-direction: column;
-}
-
-.productos-content {
+  flex: 1;
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}.productos-content {
     margin-top: 70px;
     padding: 2rem;
     max-width: 1400px;

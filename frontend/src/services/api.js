@@ -3,9 +3,21 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
 // Función helper para manejar respuestas
 const handleResponse = async (response) => {
+  // Si es 401 (No autorizado), limpiar sesión y redirigir al login
+  if (response.status === 401) {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login';
+    throw new Error('Sesión expirada. Por favor, inicia sesión nuevamente.');
+  }
+  
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Error en el servidor' }));
-    throw new Error(error.message || 'Error en la petición');
+    const error = await response.json().catch(() => ({ error: 'Error en el servidor' }));
+    // Si hay detalles de validación, incluirlos en el mensaje
+    if (error.details && Array.isArray(error.details)) {
+      throw new Error(`${error.error || 'Error'}: ${error.details.join(', ')}`);
+    }
+    throw new Error(error.error || error.message || 'Error en la petición');
   }
   return response.json();
 };
@@ -263,11 +275,130 @@ export const clientesAPI = {
     return handleResponse(response);
   },
 
+  getById: async (id) => {
+    const response = await fetch(`${API_URL}/clientes/${id}`, {
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
   create: async (clienteData) => {
     const response = await fetch(`${API_URL}/clientes`, {
       method: 'POST',
       headers: getHeaders(),
       body: JSON.stringify(clienteData)
+    });
+    return handleResponse(response);
+  },
+
+  update: async (id, clienteData) => {
+    const response = await fetch(`${API_URL}/clientes/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(clienteData)
+    });
+    return handleResponse(response);
+  },
+
+  delete: async (id) => {
+    const response = await fetch(`${API_URL}/clientes/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  }
+};
+
+// ==================== TRASLADOS ====================
+export const trasladosAPI = {
+  getAll: async () => {
+    const response = await fetch(`${API_URL}/traslados`, {
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  create: async (trasladoData) => {
+    const response = await fetch(`${API_URL}/traslados`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(trasladoData)
+    });
+    return handleResponse(response);
+  },
+
+  completar: async (id) => {
+    const response = await fetch(`${API_URL}/traslados/${id}/completar`, {
+      method: 'PUT',
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  }
+};
+
+// ==================== INVENTARIO POR ALMACÉN ====================
+export const inventarioAlmacenAPI = {
+  // Obtener todo el inventario
+  getAll: async (params = {}) => {
+    const queryParams = new URLSearchParams(params).toString();
+    const url = `${API_URL}/inventario-almacen${queryParams ? `?${queryParams}` : ''}`;
+    const response = await fetch(url, {
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener inventario de un almacén específico
+  getByAlmacen: async (almacenId) => {
+    const response = await fetch(`${API_URL}/inventario-almacen/almacen/${almacenId}`, {
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Agregar producto a almacén
+  create: async (data) => {
+    const response = await fetch(`${API_URL}/inventario-almacen`, {
+      method: 'POST',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+
+  // Ajustar stock
+  ajustarStock: async (id, cantidad, tipo, detalle) => {
+    const response = await fetch(`${API_URL}/inventario-almacen/${id}/stock`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify({ cantidad, tipo, detalle })
+    });
+    return handleResponse(response);
+  },
+
+  // Actualizar configuración
+  update: async (id, data) => {
+    const response = await fetch(`${API_URL}/inventario-almacen/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(),
+      body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+
+  // Eliminar producto del almacén
+  delete: async (id) => {
+    const response = await fetch(`${API_URL}/inventario-almacen/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
+  // Obtener estadísticas
+  getEstadisticas: async () => {
+    const response = await fetch(`${API_URL}/inventario-almacen/estadisticas/general`, {
+      headers: getHeaders()
     });
     return handleResponse(response);
   }
@@ -281,5 +412,7 @@ export default {
   compras: comprasAPI,
   almacenes: almacenesAPI,
   proveedores: proveedoresAPI,
-  clientes: clientesAPI
+  clientes: clientesAPI,
+  traslados: trasladosAPI,
+  inventarioAlmacen: inventarioAlmacenAPI
 };

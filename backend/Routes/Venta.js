@@ -2,60 +2,24 @@ const express = require('express');
 const router = express.Router();
 const Venta = require('../Models/Venta');
 const Producto = require('../Models/Producto');
+const ProductoAlmacen = require('../Models/ProductoAlmacen');
 const Cliente = require('../Models/Clientes');
 const InventarioLog = require('../Models/InventarioLog');
 const { validarVenta } = require('../Validators/Venta');
 const { checkAuth, checkRol } = require('../Middlewares/auth');
-const excelJS = require('exceljs');
 
-// GET /ventas - Obtener todas las ventas con filtros
+// GET /ventas - Obtener todas las ventas
 router.get('/', checkAuth, async (req, res) => {
   try {
-    const { 
-      limit = 20, 
-      page = 1, 
-      cliente,
-      fechaDesde,
-      fechaHasta,
-      estado,
-      sort = '-fechaCreacion'
-    } = req.query;
-
-    // Construir query de filtrado
-    const query = {};
-    
-    if (cliente) query.cliente = cliente;
-    if (estado) query.estado = estado;
-
-    // Filtro por rango de fechas
-    if (fechaDesde || fechaHasta) {
-      query.fechaCreacion = {};
-      if (fechaDesde) query.fechaCreacion.$gte = new Date(fechaDesde);
-      if (fechaHasta) query.fechaCreacion.$lte = new Date(fechaHasta);
-    }
-
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort,
-      populate: [
-        { path: 'cliente', select: 'nombre email' },
-        { path: 'vendedor', select: 'nombre email' },
-        { path: 'productos.producto', select: 'nombre codigo precio' }
-      ]
-    };
-
-    const ventas = await Venta.paginate(query, options);
+    const ventas = await Venta.find({ estado: 'completada' })
+      .populate('cliente', 'nombre ruc email telefono')
+      .populate('usuario', 'nombre email')
+      .populate('items.producto', 'nombre sku')
+      .sort('-fechaVenta');
 
     res.status(200).json({
       success: true,
-      data: ventas.docs,
-      pagination: {
-        total: ventas.totalDocs,
-        limit: ventas.limit,
-        page: ventas.page,
-        pages: ventas.totalPages
-      }
+      data: ventas
     });
 
   } catch (error) {
@@ -72,22 +36,14 @@ router.get('/', checkAuth, async (req, res) => {
 router.get('/:id', checkAuth, async (req, res) => {
   try {
     const venta = await Venta.findById(req.params.id)
-      .populate('cliente', 'nombre email direccion telefono')
-      .populate('vendedor', 'nombre email')
-      .populate('productos.producto', 'nombre codigo precio imagen');
+      .populate('cliente', 'nombre ruc email telefono direccion')
+      .populate('usuario', 'nombre email')
+      .populate('items.producto', 'nombre sku precio');
 
     if (!venta) {
       return res.status(404).json({
         success: false,
         error: 'Venta no encontrada'
-      });
-    }
-
-    // Verificar permisos (vendedor solo puede ver sus propias ventas)
-    if (req.user.rol !== 'admin' && venta.vendedor._id.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        error: 'No tienes permiso para ver esta venta'
       });
     }
 
@@ -114,105 +70,121 @@ router.get('/:id', checkAuth, async (req, res) => {
 });
 
 // POST /ventas - Crear nueva venta
-router.post('/', checkAuth, validarVenta, async (req, res) => {
-  const session = await Venta.startSession();
-  session.startTransaction();
-
+router.post('/', checkAuth, async (req, res) => {
   try {
-    const { cliente, productos, metodoPago, notas } = req.body;
-    const vendedor = req.user.id;
+    const { cliente, items, subtotal, impuesto, total, metodoPago, datosTarjeta, almacen } = req.body;
+    const usuario = req.usuario?._id || req.user?._id;
 
     // 1. Verificar que el cliente existe
-    const clienteExiste = await Cliente.findById(cliente).session(session);
-    if (!clienteExiste || !clienteExiste.estado) {
-      await session.abortTransaction();
-      session.endSession();
+    const clienteExiste = await Cliente.findById(cliente);
+    if (!clienteExiste || !clienteExiste.activo) {
       return res.status(400).json({
         success: false,
         error: 'Cliente no válido o inactivo'
       });
     }
 
-    // 2. Verificar stock y calcular total
-    let total = 0;
-    const productosActualizados = [];
-    const productosVenta = [];
+    // 2. Verificar stock y actualizar inventario
+    const itemsActualizados = [];
     
-    for (const item of productos) {
-      const producto = await Producto.findById(item.producto).session(session);
+    for (const item of items) {
+      const producto = await Producto.findById(item.producto);
       
-      if (!producto || !producto.estado) {
-        await session.abortTransaction();
-        session.endSession();
+      if (!producto || !producto.activo) {
         return res.status(400).json({
           success: false,
           error: `Producto ${item.producto} no encontrado o inactivo`
         });
       }
+
+      // Buscar el stock en el almacén específico o usar el primero disponible
+      let productoAlmacen;
+      if (almacen) {
+        productoAlmacen = await ProductoAlmacen.findOne({
+          producto: item.producto,
+          almacen: almacen
+        });
+      } else {
+        productoAlmacen = await ProductoAlmacen.findOne({
+          producto: item.producto
+        }).sort('-stock');
+      }
+
+      if (!productoAlmacen) {
+        return res.status(400).json({
+          success: false,
+          error: `No hay stock disponible para el producto ${producto.nombre}`
+        });
+      }
       
-      if (producto.stock < item.cantidad) {
-        await session.abortTransaction();
-        session.endSession();
+      if (productoAlmacen.stock < item.cantidad) {
         return res.status(400).json({
           success: false,
           error: `Stock insuficiente para el producto ${producto.nombre}`,
-          producto: producto._id,
-          stockDisponible: producto.stock,
+          stockDisponible: productoAlmacen.stock,
           cantidadSolicitada: item.cantidad
         });
       }
       
-      // Actualizar stock (en memoria)
-      producto.stock -= item.cantidad;
-      productosActualizados.push(producto);
+      // Actualizar stock
+      const stockAnterior = productoAlmacen.stock;
+      productoAlmacen.stock -= item.cantidad;
+      await productoAlmacen.save();
       
-      // Agregar a productosVenta con precio actual
-      productosVenta.push({
+      // Registrar movimiento de inventario
+      await InventarioLog.create({
+        producto: producto._id,
+        almacen: productoAlmacen.almacen,
+        cantidad: -item.cantidad,
+        tipo: 'salida',
+        motivo: 'venta',
+        stockAnterior: stockAnterior,
+        stockNuevo: productoAlmacen.stock,
+        usuario: usuario
+      });
+
+      itemsActualizados.push({
         producto: producto._id,
         cantidad: item.cantidad,
-        precioUnitario: producto.precio,
-        subtotal: producto.precio * item.cantidad
+        precioUnitario: item.precioUnitario || producto.precio
       });
-      
-      total += producto.precio * item.cantidad;
     }
 
-    // 3. Crear la venta
+    // 3. Generar número de comprobante
+    const totalVentas = await Venta.countDocuments();
+    const numeroComprobante = `V-${String(totalVentas + 1).padStart(6, '0')}`;
+
+    // 4. Preparar datos de tarjeta (solo últimos 4 dígitos)
+    let datosTarjetaSegura = null;
+    if (metodoPago === 'tarjeta' && datosTarjeta) {
+      datosTarjetaSegura = {
+        numeroTarjeta: datosTarjeta.numeroTarjeta ? `****${datosTarjeta.numeroTarjeta.slice(-4)}` : null,
+        titular: datosTarjeta.titular,
+        fechaExpiracion: datosTarjeta.fechaExpiracion
+      };
+    }
+
+    // 5. Crear la venta
     const nuevaVenta = new Venta({
       cliente,
-      vendedor,
-      productos: productosVenta,
+      items: itemsActualizados,
+      subtotal,
+      impuesto,
       total,
+      usuario,
       metodoPago,
-      notas,
+      datosTarjeta: datosTarjetaSegura,
+      numeroComprobante,
       estado: 'completada'
     });
 
-    await nuevaVenta.save({ session });
+    await nuevaVenta.save();
 
-    // 4. Actualizar stock en la base de datos y registrar movimientos
-    for (const producto of productosActualizados) {
-      await producto.save({ session });
-      
-      await InventarioLog.create([{
-        producto: producto._id,
-        cantidad: -producto.cantidadVendida,
-        tipo: 'venta',
-        referencia: nuevaVenta._id,
-        usuario: vendedor,
-        stockAnterior: producto.stock + producto.cantidadVendida,
-        stockNuevo: producto.stock
-      }], { session });
-    }
-
-    await session.commitTransaction();
-    session.endSession();
-
-    // 5. Responder con la venta creada
+    // 6. Responder con la venta creada
     const ventaCreada = await Venta.findById(nuevaVenta._id)
-      .populate('cliente', 'nombre email')
-      .populate('vendedor', 'nombre email')
-      .populate('productos.producto', 'nombre codigo');
+      .populate('cliente', 'nombre ruc email telefono')
+      .populate('usuario', 'nombre email')
+      .populate('items.producto', 'nombre sku');
 
     res.status(201).json({
       success: true,
@@ -221,9 +193,6 @@ router.post('/', checkAuth, validarVenta, async (req, res) => {
     });
 
   } catch (error) {
-    await session.abortTransaction();
-    session.endSession();
-    
     console.error('Error en POST /ventas:', error);
     
     if (error.name === 'ValidationError') {
@@ -243,100 +212,5 @@ router.post('/', checkAuth, validarVenta, async (req, res) => {
   }
 });
 
-// GET /ventas/reporte/ventas - Generar reporte de ventas
-router.get('/reporte/ventas', checkAuth, checkRol(['admin', 'gerente']), async (req, res) => {
-  try {
-    const { fechaDesde, fechaHasta, formato = 'excel' } = req.query;
-
-    // Construir query de filtrado
-    const query = { estado: 'completada' };
-
-    if (fechaDesde || fechaHasta) {
-      query.fechaCreacion = {};
-      if (fechaDesde) query.fechaCreacion.$gte = new Date(fechaDesde);
-      if (fechaHasta) query.fechaCreacion.$lte = new Date(fechaHasta);
-    }
-
-    const ventas = await Venta.find(query)
-      .populate('cliente', 'nombre email')
-      .populate('vendedor', 'nombre email')
-      .populate('productos.producto', 'nombre codigo')
-      .sort('-fechaCreacion');
-
-    if (formato === 'excel') {
-      // Generar reporte en Excel
-      const workbook = new excelJS.Workbook();
-      const worksheet = workbook.addWorksheet('Reporte de Ventas');
-
-      // Configurar columnas
-      worksheet.columns = [
-        { header: 'ID Venta', key: 'id', width: 10 },
-        { header: 'Fecha', key: 'fecha', width: 15 },
-        { header: 'Cliente', key: 'cliente', width: 25 },
-        { header: 'Vendedor', key: 'vendedor', width: 25 },
-        { header: 'Productos', key: 'productos', width: 40 },
-        { header: 'Cantidad Total', key: 'cantidad', width: 15 },
-        { header: 'Total', key: 'total', width: 15 },
-        { header: 'Método de Pago', key: 'metodoPago', width: 20 }
-      ];
-
-      // Agregar datos
-      ventas.forEach(venta => {
-        const productosStr = venta.productos.map(p => 
-          `${p.producto.nombre} (${p.cantidad} x $${p.precioUnitario})`
-        ).join('\n');
-
-        worksheet.addRow({
-          id: venta._id,
-          fecha: venta.fechaCreacion.toLocaleDateString(),
-          cliente: venta.cliente.nombre,
-          vendedor: venta.vendedor.nombre,
-          productos: productosStr,
-          cantidad: venta.productos.reduce((sum, p) => sum + p.cantidad, 0),
-          total: `$${venta.total.toFixed(2)}`,
-          metodoPago: venta.metodoPago
-        });
-      });
-
-      // Estilizar
-      worksheet.getRow(1).eachCell(cell => {
-        cell.font = { bold: true };
-      });
-
-      // Enviar archivo
-      res.setHeader(
-        'Content-Type',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-      );
-      res.setHeader(
-        'Content-Disposition',
-        'attachment; filename=reporte_ventas.xlsx'
-      );
-
-      await workbook.xlsx.write(res);
-      res.end();
-    } else {
-      // Formato JSON
-      res.status(200).json({
-        success: true,
-        data: ventas,
-        totalVentas: ventas.length,
-        totalIngresos: ventas.reduce((sum, venta) => sum + venta.total, 0),
-        periodo: {
-          fechaDesde,
-          fechaHasta
-        }
-      });
-    }
-
-  } catch (error) {
-    console.error('Error en GET /ventas/reporte/ventas:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Error al generar el reporte de ventas',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
 
 module.exports = router;

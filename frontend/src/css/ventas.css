@@ -1,7 +1,8 @@
 .ventas-container {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     background: var(--bg-secondary);
+    overflow: hidden;
 }
 
 .ventas-main {
@@ -9,6 +10,8 @@
     margin-left: 250px;
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .ventas-content {
@@ -16,6 +19,8 @@
     padding: 2rem;
     max-width: 1600px;
     width: 100%;
+    overflow-y: auto;
+    height: calc(100vh - 70px);
 }
 
 .ventas-header {
@@ -299,4 +304,58 @@
     .productos-grid {
         grid-template-columns: 1fr;
     }
+}
+
+/* Modal de Pago con Tarjeta */
+.form-pago-tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-pago-tarjeta .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-pago-tarjeta .form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.form-pago-tarjeta .input-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.resumen-modal {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.resumen-modal p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.resumen-modal strong {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.modal-actions button {
+    flex: 1;
 }

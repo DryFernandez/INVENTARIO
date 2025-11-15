@@ -7,14 +7,24 @@ const ItemVentaSchema = new mongoose.Schema({
   precioUnitario: { type: Number, required: true }
 });
 
+const DatosTarjetaSchema = new mongoose.Schema({
+  numeroTarjeta: { type: String }, // Últimos 4 dígitos
+  titular: { type: String },
+  fechaExpiracion: { type: String }
+});
+
 const VentaSchema = new mongoose.Schema({
-  cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', required: true }, // Actualizado
+  cliente: { type: mongoose.Schema.Types.ObjectId, ref: 'Cliente', required: true },
   items: [ItemVentaSchema],
   fechaVenta: { type: Date, default: Date.now },
+  subtotal: { type: Number, required: true },
+  impuesto: { type: Number, required: true },
   total: { type: Number, required: true },
   usuario: { type: mongoose.Schema.Types.ObjectId, ref: 'Usuario' },
-  metodoPago: { type: String, enum: ['efectivo', 'tarjeta', 'transferencia'], required: true },
-  numeroComprobante: { type: String } // Nuevo campo
+  metodoPago: { type: String, enum: ['efectivo', 'tarjeta'], required: true },
+  datosTarjeta: DatosTarjetaSchema,
+  numeroComprobante: { type: String },
+  estado: { type: String, enum: ['completada', 'cancelada'], default: 'completada' }
 });
 
 module.exports = mongoose.model('Venta', VentaSchema);

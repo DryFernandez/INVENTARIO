@@ -9,15 +9,16 @@ const { checkAuth, checkRol } = require('../Middlewares/auth');
 // Roles permitidos
 const ROLES = {
   ADMIN: 'admin',
-  USUARIO: 'usuario',
-  BODEGUERO: 'bodeguero',
-  VENDEDOR: 'vendedor'
+  GESTOR_VENTAS: 'gestor_ventas',
+  GESTOR_COMPRAS: 'gestor_compras',
+  ADMIN_INVENTARIO: 'admin_inventario',
+  EMPLEADO: 'empleado'
 };
 
 // POST /usuarios/registrar - Registro público de usuarios
 router.post('/registrar', validarUsuario, async (req, res) => {
   try {
-    const { email, password, rol = ROLES.USUARIO } = req.body;
+    const { email, password, rol = ROLES.EMPLEADO } = req.body;
 
     // Validar que el rol sea válido
     if (!Object.values(ROLES).includes(rol)) {
@@ -148,31 +149,20 @@ router.post('/login', async (req, res) => {
 // GET /usuarios - Obtener todos los usuarios (solo admin)
 router.get('/', checkAuth, checkRol([ROLES.ADMIN]), async (req, res) => {
   try {
-    const { limit = 20, page = 1, estado = 'true', rol } = req.query;
+    const { estado, rol } = req.query;
 
     // Construir query
     const query = {};
     if (estado !== undefined) query.estado = estado === 'true';
     if (rol) query.rol = rol;
 
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      select: '-password', // Excluir password
-      sort: '-fechaCreacion'
-    };
-
-    const usuarios = await Usuario.paginate(query, options);
+    const usuarios = await Usuario.find(query)
+      .select('-password')
+      .sort('-fechaCreacion');
 
     res.status(200).json({
       success: true,
-      data: usuarios.docs,
-      pagination: {
-        total: usuarios.totalDocs,
-        limit: usuarios.limit,
-        page: usuarios.page,
-        pages: usuarios.totalPages
-      },
+      data: usuarios,
       rolesDisponibles: Object.values(ROLES)
     });
 
@@ -295,18 +285,28 @@ router.delete('/:id', checkAuth, checkRol([ROLES.ADMIN]), async (req, res) => {
       });
     }
 
-    const usuarioDesactivado = await Usuario.findByIdAndUpdate(
-      id,
-      { estado: false, fechaActualizacion: new Date() },
-      { new: true }
-    ).select('-password');
-
-    if (!usuarioDesactivado) {
+    // Buscar el usuario a desactivar
+    const usuario = await Usuario.findById(id);
+    if (!usuario) {
       return res.status(404).json({
         success: false,
         error: 'Usuario no encontrado'
       });
     }
+
+    // No permitir eliminar al administrador principal (admin@gmail.com)
+    if (usuario.email === 'admin@gmail.com' || (usuario.rol === ROLES.ADMIN && usuario.email.includes('admin'))) {
+      return res.status(403).json({
+        success: false,
+        error: 'No se puede desactivar al administrador principal del sistema'
+      });
+    }
+
+    const usuarioDesactivado = await Usuario.findByIdAndUpdate(
+      id,
+      { activo: false, fechaActualizacion: new Date() },
+      { new: true }
+    ).select('-password');
 
     res.status(200).json({
       success: true,

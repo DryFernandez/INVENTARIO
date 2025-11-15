@@ -10,6 +10,7 @@ import Card from "../components/common/Card";
 import { productosAPI, categoriasAPI, almacenesAPI, proveedoresAPI } from "../services/api";
 import { IoIosAdd, IoMdSearch } from "react-icons/io";
 import { FaFilter, FaFileExport } from "react-icons/fa";
+import { formatearMoneda } from '../utils/formatters';
 
 function Productos() {
   const [productos, setProductos] = useState([]);
@@ -110,7 +111,7 @@ function Productos() {
       resetForm();
     } catch (error) {
       console.error('Error al guardar producto:', error);
-      alert('Error al guardar el producto');
+      alert(error.message || 'Error al guardar el producto');
     }
   };
 
@@ -171,22 +172,39 @@ function Productos() {
       accessor: "categoria",
       render: (row) => row.categoria?.nombre || 'Sin categoría'
     },
+    { 
+      header: "Almacén", 
+      accessor: "almacen",
+      render: (row) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span style={{ fontSize: '1.2rem' }}>📦</span>
+          <span>{row.almacen?.nombre || 'Sin asignar'}</span>
+        </div>
+      )
+    },
     {
       header: "Precio",
       accessor: "precio",
-      render: (row) => `$${row.precio.toFixed(2)}`,
+      render: (row) => formatearMoneda(row.precio || 0),
     },
     {
       header: "Stock",
       accessor: "stock",
       render: (row) => (
-        <span
-          className={`stock-badge ${
-            row.stock <= row.stockMinimo ? "low" : "normal"
-          }`}
-        >
-          {row.stock} unidades
-        </span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+          <span
+            className={`stock-badge ${
+              row.stock <= row.stockMinimo ? "low" : "normal"
+            }`}
+          >
+            {row.stock} unidades
+          </span>
+          {row.stock <= row.stockMinimo && (
+            <span style={{ fontSize: '0.75rem', color: 'var(--error)' }}>
+              ⚠️ Stock bajo (mín: {row.stockMinimo})
+            </span>
+          )}
+        </div>
       ),
     },
   ];
@@ -277,11 +295,12 @@ function Productos() {
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <Input
-              label="SKU"
+              label="SKU (auto-generado)"
               name="sku"
               value={formData.sku}
               onChange={handleInputChange}
-              required
+              disabled={!isEditing}
+              placeholder="Se generará automáticamente"
             />
             <Input
               label="Nombre"

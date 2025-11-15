@@ -58,6 +58,65 @@
     border: 2px solid var(--bg-darker);
 }
 
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    padding: 0.05rem 0.35rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+    max-width: 200px;
+}
+
+.user-info:hover {
+    transform: translateY(-2px);
+}
+
+.user-avatar {
+    width: 2px;
+    height: 2px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.user-avatar .icon {
+    font-size: 0.75rem;
+    color: var(--text-white);
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.05rem;
+    overflow: hidden;
+}
+
+.user-name {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-white);
+    line-height: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
+.user-email {
+    font-size: 0.6rem;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 120px;
+}
+
 .icon-btn {
     background: rgba(255, 255, 255, 0.1);
     border: none;
@@ -78,6 +137,15 @@
 
 .icon-btn.logout:hover {
     background: rgba(239, 68, 68, 0.2);
+}
+
+.icon-btn.theme-toggle {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.icon-btn.theme-toggle:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px) rotate(20deg);
 }
 
 .icon {

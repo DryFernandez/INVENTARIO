@@ -6,16 +6,26 @@ import Login from '../app/Login'
 import Proveedores from '../app/Proveedores'
 import Categorias from '../app/Categorias'
 import Ventas from '../app/Ventas'
+import VentasRegistradas from '../app/VentasRegistradas'
 import Compras from '../app/Compras'
+import ComprasRegistradas from '../app/ComprasRegistradas'
 import Perfil from '../app/Perfil'
 import Almacenes from '../app/Almacenes'
+import Clientes from '../app/Clientes'
+import Usuarios from '../app/Usuarios'
+import { canAccess } from '../utils/permissions'
 
 // Componente para proteger rutas
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, permission }) => {
   const token = localStorage.getItem('token');
   
   if (!token) {
     return <Navigate to="/login" replace />;
+  }
+  
+  // Si se especifica un permiso, verificarlo
+  if (permission && !canAccess(permission)) {
+    return <Navigate to="/" replace />;
   }
   
   return children;
@@ -29,43 +39,63 @@ const Path = () => {
         
         {/* Rutas protegidas */}
         <Route path="/" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="dashboard">
             <Dashboard/>
           </ProtectedRoute>
         }/>
         <Route path="/productos" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="productos_ver">
             <Productos/>
           </ProtectedRoute>
         }/>
         <Route path="/proveedores" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="proveedores_ver">
             <Proveedores/>
           </ProtectedRoute>
         }/>
         <Route path="/categorias" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="categorias_ver">
             <Categorias/>
           </ProtectedRoute>
         }/>
         <Route path="/ventas" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="ventas_ver">
             <Ventas/>
           </ProtectedRoute>
         }/>
+        <Route path="/ventas-registradas" element={
+          <ProtectedRoute permission="ventas_registradas">
+            <VentasRegistradas/>
+          </ProtectedRoute>
+        }/>
         <Route path="/compras" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="compras_ver">
             <Compras/>
           </ProtectedRoute>
         }/>
+        <Route path="/compras-registradas" element={
+          <ProtectedRoute permission="compras_registradas">
+            <ComprasRegistradas/>
+          </ProtectedRoute>
+        }/>
         <Route path="/perfil" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="perfil">
             <Perfil/>
           </ProtectedRoute>
         }/>
         <Route path="/almacenes" element={
-          <ProtectedRoute>
+          <ProtectedRoute permission="almacenes_ver">
             <Almacenes/>
+          </ProtectedRoute>
+        }/>
+        <Route path="/clientes" element={
+          <ProtectedRoute permission="clientes_ver">
+            <Clientes/>
+          </ProtectedRoute>
+        }/>
+        <Route path="/usuarios" element={
+          <ProtectedRoute permission="usuarios_ver">
+            <Usuarios/>
           </ProtectedRoute>
         }/>
         

@@ -7,7 +7,7 @@ const { checkAuth, checkRol } = require('../Middlewares/auth');
 // GET / - Obtener todas las categorías activas
 router.get('/', async (req, res) => {
   try {
-    const categorias = await Categoria.find({ activo: true }).sort({ nombre: 1 });
+    const categorias = await Categoria.find({ activa: true }).sort({ nombre: 1 });
     res.status(200).json(categorias);
   } catch (error) {
     console.error('Error en GET /categorias:', error);
@@ -20,7 +20,7 @@ router.get('/:id', async (req, res) => {
   try {
     const categoria = await Categoria.findOne({
       _id: req.params.id,
-      estado: true
+      activa: true
     });
 
     if (!categoria) {
@@ -120,7 +120,7 @@ router.put('/:id',
         { new: true, runValidators: true }
       );
 
-      if (!categoriaActualizada || !categoriaActualizada.estado) {
+      if (!categoriaActualizada || !categoriaActualizada.activa) {
         return res.status(404).json({
           success: false,
           error: 'Categoría no encontrada'
@@ -167,7 +167,7 @@ router.delete('/:id',
       const categoriaDesactivada = await Categoria.findByIdAndUpdate(
         req.params.id,
         {
-          estado: false,
+          activa: false,
           actualizadoPor: req.user.id,
           fechaActualizacion: Date.now()
         },

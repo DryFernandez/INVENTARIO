@@ -27,6 +27,7 @@ app.use('/api/productos', require('./Routes/Producto'));
 app.use('/api/compras', require('./Routes/Compras'));
 app.use('/api/ventas', require('./Routes/Venta'));
 app.use('/api/traslados', require('./Routes/Traslado'));
+app.use('/api/inventario-almacen', require('./Routes/ProductoAlmacen'));
 app.use('/api/inventario/log', require('./Routes/InventarioLog'));
 
 // Ruta de prueba

@@ -1,30 +1,52 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import '../css/ventas.css'
 import Nav from '../components/nav/Nav'
 import Bar from '../components/bar/Bar'
 import Card from '../components/common/Card'
 import Button from '../components/common/Button'
 import Input from '../components/common/Input'
+import Modal from '../components/common/Modal'
 import { IoMdSearch, IoMdAdd, IoMdRemove, IoMdTrash } from 'react-icons/io'
-import { FaShoppingCart, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa'
+import { FaShoppingCart, FaCreditCard, FaMoneyBillWave, FaUser } from 'react-icons/fa'
+import { productosAPI, clientesAPI, ventasAPI } from '../services/api'
+import { formatearMonedaCompleta } from '../utils/formatters'
 
 function Ventas() {
   const [carrito, setCarrito] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [metodoPago, setMetodoPago] = useState('efectivo');
-  const [clienteInfo, setClienteInfo] = useState({
-    nombre: '',
-    email: '',
-    telefono: ''
+  const [clientes, setClientes] = useState([]);
+  const [clienteSeleccionado, setClienteSeleccionado] = useState(null);
+  const [productosDisponibles, setProductosDisponibles] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [isModalPagoOpen, setIsModalPagoOpen] = useState(false);
+  const [datosTarjeta, setDatosTarjeta] = useState({
+    numeroTarjeta: '',
+    fechaExpiracion: '',
+    cvv: '',
+    titular: ''
   });
 
-  // Productos disponibles (ejemplo)
-  const productosDisponibles = [
-    { _id: '1', sku: 'PROD001', nombre: 'Laptop Dell XPS 15', precio: 1200, stock: 15 },
-    { _id: '2', sku: 'PROD002', nombre: 'Mouse Logitech MX', precio: 45, stock: 30 },
-    { _id: '3', sku: 'PROD003', nombre: 'Teclado Mecánico', precio: 89, stock: 8 },
-    { _id: '4', sku: 'PROD004', nombre: 'Monitor Samsung 27"', precio: 350, stock: 12 },
-  ];
+  useEffect(() => {
+    cargarDatos();
+  }, []);
+
+  const cargarDatos = async () => {
+    try {
+      setLoading(true);
+      const [productosData, clientesData] = await Promise.all([
+        productosAPI.getAll(),
+        clientesAPI.getAll()
+      ]);
+      setProductosDisponibles(productosData);
+      setClientes(clientesData);
+    } catch (error) {
+      console.error('Error cargando datos:', error);
+      alert('Error al cargar los datos');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const productosFiltrados = productosDisponibles.filter(p =>
     p.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -77,33 +99,73 @@ function Ventas() {
     return calcularSubtotal() + calcularImpuesto();
   };
 
-  const procesarVenta = () => {
+  const procesarVenta = async () => {
     if (carrito.length === 0) {
       alert('El carrito está vacío');
       return;
     }
 
-    if (!clienteInfo.nombre) {
-      alert('Por favor ingrese el nombre del cliente');
+    if (!clienteSeleccionado) {
+      alert('Por favor seleccione un cliente');
       return;
     }
 
-    const venta = {
-      cliente: clienteInfo,
-      items: carrito,
-      metodoPago,
-      subtotal: calcularSubtotal(),
-      impuesto: calcularImpuesto(),
-      total: calcularTotal(),
-      fecha: new Date().toISOString()
-    };
+    if (metodoPago === 'tarjeta') {
+      setIsModalPagoOpen(true);
+      return;
+    }
 
-    console.log('Procesando venta:', venta);
-    alert('Venta procesada exitosamente');
-    
-    // Limpiar el carrito y formulario
-    setCarrito([]);
-    setClienteInfo({ nombre: '', email: '', telefono: '' });
+    await finalizarVenta();
+  };
+
+  const finalizarVenta = async () => {
+    try {
+      const venta = {
+        cliente: clienteSeleccionado._id,
+        items: carrito.map(item => ({
+          producto: item._id,
+          cantidad: item.cantidad,
+          precioUnitario: item.precio
+        })),
+        metodoPago,
+        subtotal: calcularSubtotal(),
+        impuesto: calcularImpuesto(),
+        total: calcularTotal(),
+        ...(metodoPago === 'tarjeta' && {
+          datosTarjeta: {
+            numeroTarjeta: datosTarjeta.numeroTarjeta,
+            titular: datosTarjeta.titular,
+            fechaExpiracion: datosTarjeta.fechaExpiracion
+          }
+        })
+      };
+
+      await ventasAPI.create(venta);
+      alert('Venta procesada exitosamente');
+      
+      // Limpiar
+      setCarrito([]);
+      setClienteSeleccionado(null);
+      setMetodoPago('efectivo');
+      setDatosTarjeta({
+        numeroTarjeta: '',
+        fechaExpiracion: '',
+        cvv: '',
+        titular: ''
+      });
+      setIsModalPagoOpen(false);
+      
+      // Recargar productos para actualizar stock
+      await cargarDatos();
+    } catch (error) {
+      console.error('Error procesando venta:', error);
+      alert(error.response?.data?.error || 'Error al procesar la venta');
+    }
+  };
+
+  const handlePagoTarjeta = (e) => {
+    e.preventDefault();
+    finalizarVenta();
   };
 
   return (
@@ -150,20 +212,40 @@ function Ventas() {
             {/* Carrito de compras */}
             <div className='carrito-section'>
               <Card title={`Carrito de Compras (${carrito.length})`}>
-                {/* Info del cliente */}
+                {/* Selector de cliente */}
                 <div className='cliente-info'>
-                  <Input
-                    label="Cliente"
-                    placeholder="Nombre del cliente"
-                    value={clienteInfo.nombre}
-                    onChange={(e) => setClienteInfo({...clienteInfo, nombre: e.target.value})}
+                  <label className='input-label'>
+                    <FaUser style={{ marginRight: '0.5rem' }} />
+                    Cliente
+                  </label>
+                  <select
+                    className='input'
+                    value={clienteSeleccionado?._id || ''}
+                    onChange={(e) => {
+                      const cliente = clientes.find(c => c._id === e.target.value);
+                      setClienteSeleccionado(cliente || null);
+                    }}
                     required
-                  />
-                  <Input
-                    placeholder="Email (opcional)"
-                    value={clienteInfo.email}
-                    onChange={(e) => setClienteInfo({...clienteInfo, email: e.target.value})}
-                  />
+                  >
+                    <option value="">Seleccionar cliente...</option>
+                    {clientes.map(cliente => (
+                      <option key={cliente._id} value={cliente._id}>
+                        {cliente.nombre} {cliente.ruc ? `- ${cliente.ruc}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                  {clienteSeleccionado && (
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      padding: '0.5rem', 
+                      background: 'var(--bg-secondary)', 
+                      borderRadius: '6px',
+                      fontSize: '0.85rem'
+                    }}>
+                      {clienteSeleccionado.email && <p>📧 {clienteSeleccionado.email}</p>}
+                      {clienteSeleccionado.telefono && <p>📱 {clienteSeleccionado.telefono}</p>}
+                    </div>
+                  )}
                 </div>
 
                 {/* Items del carrito */}
@@ -193,7 +275,7 @@ function Ventas() {
                           </button>
                         </div>
                         <div className='item-total'>
-                          ${(item.precio * item.cantidad).toFixed(2)}
+                          {formatearMonedaCompleta(item.precio * item.cantidad)}
                         </div>
                       </div>
                     ))
@@ -225,15 +307,15 @@ function Ventas() {
                 <div className='resumen-venta'>
                   <div className='resumen-item'>
                     <span>Subtotal:</span>
-                    <span>${calcularSubtotal().toFixed(2)}</span>
+                    <span>{formatearMonedaCompleta(calcularSubtotal())}</span>
                   </div>
                   <div className='resumen-item'>
                     <span>IVA (16%):</span>
-                    <span>${calcularImpuesto().toFixed(2)}</span>
+                    <span>{formatearMonedaCompleta(calcularImpuesto())}</span>
                   </div>
                   <div className='resumen-total'>
                     <span>Total:</span>
-                    <span>${calcularTotal().toFixed(2)}</span>
+                    <span>{formatearMonedaCompleta(calcularTotal())}</span>
                   </div>
                 </div>
 
@@ -251,6 +333,93 @@ function Ventas() {
           </div>
         </div>
       </main>
+
+      {/* Modal de Pago con Tarjeta */}
+      <Modal
+        isOpen={isModalPagoOpen}
+        onClose={() => setIsModalPagoOpen(false)}
+        title="Datos de la Tarjeta"
+      >
+        <form onSubmit={handlePagoTarjeta} className='form-pago-tarjeta'>
+          <div className='form-group'>
+            <label className='input-label'>Titular de la Tarjeta</label>
+            <Input
+              type="text"
+              placeholder="Nombre como aparece en la tarjeta"
+              value={datosTarjeta.titular}
+              onChange={(e) => setDatosTarjeta({...datosTarjeta, titular: e.target.value})}
+              required
+            />
+          </div>
+
+          <div className='form-group'>
+            <label className='input-label'>Número de Tarjeta</label>
+            <Input
+              type="text"
+              placeholder="1234 5678 9012 3456"
+              maxLength="19"
+              value={datosTarjeta.numeroTarjeta}
+              onChange={(e) => {
+                const valor = e.target.value.replace(/\s/g, '').replace(/(\d{4})/g, '$1 ').trim();
+                setDatosTarjeta({...datosTarjeta, numeroTarjeta: valor});
+              }}
+              required
+            />
+          </div>
+
+          <div className='form-row'>
+            <div className='form-group'>
+              <label className='input-label'>Fecha de Expiración</label>
+              <Input
+                type="text"
+                placeholder="MM/YY"
+                maxLength="5"
+                value={datosTarjeta.fechaExpiracion}
+                onChange={(e) => {
+                  let valor = e.target.value.replace(/\D/g, '');
+                  if (valor.length >= 2) {
+                    valor = valor.slice(0, 2) + '/' + valor.slice(2, 4);
+                  }
+                  setDatosTarjeta({...datosTarjeta, fechaExpiracion: valor});
+                }}
+                required
+              />
+            </div>
+
+            <div className='form-group'>
+              <label className='input-label'>CVV</label>
+              <Input
+                type="text"
+                placeholder="123"
+                maxLength="3"
+                value={datosTarjeta.cvv}
+                onChange={(e) => {
+                  const valor = e.target.value.replace(/\D/g, '');
+                  setDatosTarjeta({...datosTarjeta, cvv: valor});
+                }}
+                required
+              />
+            </div>
+          </div>
+
+          <div className='resumen-modal'>
+            <p>Total a pagar: <strong>{formatearMonedaCompleta(calcularTotal())}</strong></p>
+          </div>
+
+          <div className='modal-actions'>
+            <Button 
+              type="button" 
+              variant="secondary" 
+              onClick={() => setIsModalPagoOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" variant="primary">
+              Confirmar Pago
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </div>
   )
 }

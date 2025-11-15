@@ -5,7 +5,11 @@ const bcrypt = require('bcryptjs');
 const UsuarioSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, match: /^\S+@\S+\.\S+$/ },
   password: { type: String, required: true },
-  rol: { type: String, enum: ['admin', 'empleado'], default: 'empleado' },
+  rol: { 
+    type: String, 
+    enum: ['admin', 'gestor_ventas', 'gestor_compras', 'admin_inventario', 'empleado'], 
+    default: 'empleado' 
+  },
   nombre: { type: String, required: true },
   fechaCreacion: { type: Date, default: Date.now },
   activo: { type: Boolean, default: true }

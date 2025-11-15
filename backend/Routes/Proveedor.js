@@ -19,8 +19,8 @@ router.get('/:id', async (req, res) => {
   try {
     const proveedor = await Proveedor.findOne({
       _id: req.params.id,
-      estado: true
-    }).populate('productos', 'nombre codigo precio stock');
+      activo: true
+    });
 
     if (!proveedor) {
       return res.status(404).json({
@@ -110,7 +110,7 @@ router.put('/:id', validarProveedor, async (req, res) => {
 
     // Verificar si el proveedor existe
     const proveedorExistente = await Proveedor.findById(id);
-    if (!proveedorExistente || !proveedorExistente.estado) {
+    if (!proveedorExistente || !proveedorExistente.activo) {
       return res.status(404).json({
         success: false,
         error: 'Proveedor no encontrado'
@@ -202,7 +202,7 @@ router.delete('/:id', async (req, res) => {
 
     const proveedorDesactivado = await Proveedor.findByIdAndUpdate(
       req.params.id,
-      { estado: false },
+      { activo: false },
       { new: true }
     );
 

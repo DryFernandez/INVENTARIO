@@ -40,14 +40,14 @@ async function crearAdminYCategorias() {
     console.log(`   Categorías existentes: ${categoriasExistentes}`);
 
     const nuevasCategorias = [
-      { nombre: 'Electrónica', descripcion: 'Productos electrónicos y tecnología', activo: true },
-      { nombre: 'Accesorios', descripcion: 'Accesorios diversos', activo: true },
-      { nombre: 'Oficina', descripcion: 'Artículos de oficina', activo: true },
-      { nombre: 'Hogar', descripcion: 'Productos para el hogar', activo: true },
-      { nombre: 'Herramientas', descripcion: 'Herramientas y equipos', activo: true },
-      { nombre: 'Deportes', descripcion: 'Artículos deportivos', activo: true },
-      { nombre: 'Alimentos', descripcion: 'Productos alimenticios', activo: true },
-      { nombre: 'Ropa', descripcion: 'Prendas de vestir', activo: true }
+      { nombre: 'Electrónica', descripcion: 'Productos electrónicos y tecnología', activa: true },
+      { nombre: 'Accesorios', descripcion: 'Accesorios diversos', activa: true },
+      { nombre: 'Oficina', descripcion: 'Artículos de oficina', activa: true },
+      { nombre: 'Hogar', descripcion: 'Productos para el hogar', activa: true },
+      { nombre: 'Herramientas', descripcion: 'Herramientas y equipos', activa: true },
+      { nombre: 'Deportes', descripcion: 'Artículos deportivos', activa: true },
+      { nombre: 'Alimentos', descripcion: 'Productos alimenticios', activa: true },
+      { nombre: 'Ropa', descripcion: 'Prendas de vestir', activa: true }
     ];
 
     let agregadas = 0;

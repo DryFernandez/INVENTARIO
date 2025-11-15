@@ -112,9 +112,8 @@ function Proveedores() {
       )
     },
     { header: 'Contacto', accessor: 'contacto' },
-    { header: 'Teléfono', accessor: 'telefono' },
-    { header: 'Email', accessor: 'email' },
-    { header: 'RFC', accessor: 'rfc' },
+    { header: 'RUC', accessor: 'ruc' },
+    { header: 'Dirección', accessor: 'direccion' },
   ];
 
   return (

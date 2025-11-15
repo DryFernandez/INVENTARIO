@@ -20,7 +20,7 @@ router.get('/:id', async (req, res) => {
   try {
     const almacen = await Almacen.findOne({
       _id: req.params.id,
-      estado: true
+      activo: true
     });
     
     if (!almacen) {
@@ -107,7 +107,7 @@ router.put('/:id',
         { new: true, runValidators: true }
       );
       
-      if (!almacenActualizado || !almacenActualizado.estado) {
+      if (!almacenActualizado || !almacenActualizado.activo) {
         return res.status(404).json({
           success: false,
           error: 'Almacén no encontrado'
@@ -154,7 +154,7 @@ router.delete('/:id',
       const almacenDesactivado = await Almacen.findByIdAndUpdate(
         req.params.id,
         {
-          estado: false,
+          activo: false,
           actualizadoPor: req.user.id,
           fechaActualizacion: Date.now()
         },

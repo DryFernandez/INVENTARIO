@@ -3,55 +3,34 @@ const router = express.Router();
 const Cliente = require('../Models/Clientes');
 const { validarCliente } = require('../Validators/Clientes');
 
-// GET / - Obtener todos los clientes activos con paginación
+// GET / - Obtener todos los clientes activos
 router.get('/', async (req, res) => {
   try {
-    const { 
-      limit = 10, 
-      page = 1, 
-      search = '',
-      sort = 'nombre',
-      order = 'asc'
-    } = req.query;
+    const { search = '' } = req.query;
 
     // Construir query de búsqueda
     const query = {
-      estado: true,
-      $or: [
+      activo: true
+    };
+
+    if (search) {
+      query.$or = [
         { nombre: { $regex: search, $options: 'i' } },
+        { ruc: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
         { telefono: { $regex: search, $options: 'i' } }
-      ]
-    };
+      ];
+    }
 
-    const options = {
-      page: parseInt(page),
-      limit: parseInt(limit),
-      sort: { [sort]: order === 'asc' ? 1 : -1 },
-      collation: { locale: 'es' }
-    };
+    const clientes = await Cliente.find(query).sort({ nombre: 1 });
 
-    const clientes = await Cliente.paginate(query, options);
-
-    res.status(200).json({
-      success: true,
-      data: clientes.docs,
-      pagination: {
-        total: clientes.totalDocs,
-        limit: clientes.limit,
-        page: clientes.page,
-        pages: clientes.totalPages,
-        hasNext: clientes.hasNextPage,
-        hasPrev: clientes.hasPrevPage
-      }
-    });
+    res.status(200).json(clientes);
 
   } catch (error) {
     console.error('Error en GET /clientes:', error);
     res.status(500).json({
       success: false,
-      error: 'Error al obtener los clientes',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      error: 'Error al obtener los clientes'
     });
   }
 });
@@ -61,7 +40,7 @@ router.get('/:id', async (req, res) => {
   try {
     const cliente = await Cliente.findOne({
       _id: req.params.id,
-      estado: true
+      activo: true
     });
 
     if (!cliente) {
@@ -97,26 +76,6 @@ router.get('/:id', async (req, res) => {
 // POST / - Crear nuevo cliente
 router.post('/', validarCliente, async (req, res) => {
   try {
-    const { email, telefono } = req.body;
-
-    // Verificar si el email ya existe
-    const existeEmail = await Cliente.findOne({ email });
-    if (existeEmail) {
-      return res.status(400).json({
-        success: false,
-        error: 'El email ya está registrado'
-      });
-    }
-
-    // Verificar si el teléfono ya existe
-    const existeTelefono = await Cliente.findOne({ telefono });
-    if (existeTelefono) {
-      return res.status(400).json({
-        success: false,
-        error: 'El teléfono ya está registrado'
-      });
-    }
-
     const nuevoCliente = await Cliente.create(req.body);
 
     res.status(201).json({
@@ -148,54 +107,18 @@ router.post('/', validarCliente, async (req, res) => {
 // PUT /:id - Actualizar cliente existente
 router.put('/:id', validarCliente, async (req, res) => {
   try {
-    const { email, telefono } = req.body;
-
-    // Verificar si el cliente existe y está activo
-    const clienteExistente = await Cliente.findOne({
-      _id: req.params.id,
-      estado: true
-    });
-
-    if (!clienteExistente) {
-      return res.status(404).json({
-        success: false,
-        error: 'Cliente no encontrado'
-      });
-    }
-
-    // Verificar si el nuevo email ya existe en otro cliente
-    if (email && email !== clienteExistente.email) {
-      const emailExiste = await Cliente.findOne({ 
-        email,
-        _id: { $ne: req.params.id }
-      });
-      if (emailExiste) {
-        return res.status(400).json({
-          success: false,
-          error: 'El email ya está registrado en otro cliente'
-        });
-      }
-    }
-
-    // Verificar si el nuevo teléfono ya existe en otro cliente
-    if (telefono && telefono !== clienteExistente.telefono) {
-      const telefonoExiste = await Cliente.findOne({ 
-        telefono,
-        _id: { $ne: req.params.id }
-      });
-      if (telefonoExiste) {
-        return res.status(400).json({
-          success: false,
-          error: 'El teléfono ya está registrado en otro cliente'
-        });
-      }
-    }
-
     const clienteActualizado = await Cliente.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
+
+    if (!clienteActualizado || !clienteActualizado.activo) {
+      return res.status(404).json({
+        success: false,
+        error: 'Cliente no encontrado'
+      });
+    }
 
     res.status(200).json({
       success: true,
@@ -235,7 +158,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const clienteDesactivado = await Cliente.findByIdAndUpdate(
       req.params.id,
-      { estado: false },
+      { activo: false },
       { new: true }
     );
 

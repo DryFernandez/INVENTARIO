@@ -16,6 +16,9 @@
     padding: 2rem 1.5rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .user-avatar {
@@ -27,6 +30,10 @@
     border: 3px solid var(--primary-color);
     box-shadow: 0 0 20px rgba(79, 70, 229, 0.3);
     transition: var(--transition);
+    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .user-avatar:hover {
@@ -41,21 +48,34 @@
     background-color: var(--bg-tertiary);
 }
 
+.avatar-icon {
+    font-size: 2.5rem;
+    color: var(--text-white);
+}
+
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
 .user-info h3 {
     color: var(--text-white);
     font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .user-role {
     color: var(--text-tertiary);
     font-size: 0.85rem;
-    display: inline-block;
+    display: block;
     padding: 0.25rem 0.75rem;
-    background: rgba(79, 70, 229, 0.2);
+    background: transparent;
     border-radius: 12px;
-    border: 1px solid rgba(79, 70, 229, 0.3);
+    border: none;
+    text-align: center;
 }
 
 .sidebar-menu {

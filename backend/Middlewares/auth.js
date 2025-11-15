@@ -15,16 +15,23 @@ module.exports = {
       
       if (!usuario) throw new Error();
       
-      req.usuario = usuario;
+      req.user = usuario;
+      req.usuario = usuario; // Mantener compatibilidad
       next();
     } catch (error) {
-      res.status(401).json({ error: 'Autenticación requerida' });
+      res.status(401).json({ 
+        success: false,
+        message: 'Autenticación requerida' 
+      });
     }
   },
 
   checkRol: (roles) => (req, res, next) => {
     if (!roles.includes(req.usuario.rol)) {
-      return res.status(403).json({ error: 'Acceso no autorizado' });
+      return res.status(403).json({ 
+        success: false,
+        message: 'Acceso no autorizado' 
+      });
     }
     next();
   }

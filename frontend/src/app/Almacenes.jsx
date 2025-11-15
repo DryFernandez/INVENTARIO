@@ -7,12 +7,13 @@ import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import Input from '../components/common/Input'
 import Table from '../components/common/Table'
-import { almacenesAPI } from '../services/api'
+import { almacenesAPI, inventarioAlmacenAPI } from '../services/api'
 import { IoIosAdd } from 'react-icons/io'
 import { FaWarehouse } from 'react-icons/fa'
 
 function Almacenes() {
   const [almacenes, setAlmacenes] = useState([]);
+  const [almacenesConInventario, setAlmacenesConInventario] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [formData, setFormData] = useState({
@@ -31,8 +32,27 @@ function Almacenes() {
   const cargarAlmacenes = async () => {
     try {
       setLoading(true);
-      const data = await almacenesAPI.getAll();
-      setAlmacenes(data);
+      const [almacenesData, estadisticas] = await Promise.all([
+        almacenesAPI.getAll(),
+        inventarioAlmacenAPI.getEstadisticas().catch(() => null)
+      ]);
+      
+      // Combinar datos de almacenes con estadísticas de inventario
+      const almacenesConDatos = almacenesData.map(almacen => {
+        const stats = estadisticas?.data?.porAlmacen?.find(
+          stat => stat.almacen === almacen.nombre
+        );
+        
+        return {
+          ...almacen,
+          stockActual: stats?.stockTotal || 0,
+          valorInventario: stats?.valorTotal || 0,
+          totalProductos: stats?.totalProductos || 0
+        };
+      });
+      
+      setAlmacenes(almacenesData);
+      setAlmacenesConInventario(almacenesConDatos);
     } catch (error) {
       console.error('Error cargando almacenes:', error);
       alert('Error al cargar almacenes');
@@ -109,25 +129,78 @@ function Almacenes() {
         </div>
       )
     },
-    { header: 'Dirección', accessor: 'direccion' },
-    { header: 'Teléfono', accessor: 'telefono' },
-    { header: 'Encargado', accessor: 'encargado' },
-    {
-      header: 'Ocupación',
-      accessor: 'ocupacion',
+    { header: 'Ubicación', accessor: 'ubicacion' },
+    { 
+      header: 'Capacidad / Stock', 
+      accessor: 'capacidadMaxima',
       render: (row) => {
-        const porcentaje = (row.ocupacion / row.capacidad * 100).toFixed(0);
+        const capacidad = row.capacidadMaxima || 0;
+        const stockActual = row.stockActual || 0;
+        const porcentaje = capacidad > 0 ? Math.min((stockActual / capacidad) * 100, 100) : 0;
+        
+        const getColor = () => {
+          if (porcentaje >= 90) return '#ef4444'; // Rojo - casi lleno
+          if (porcentaje >= 70) return '#f59e0b'; // Naranja - advertencia
+          return '#10b981'; // Verde - normal
+        };
+
         return (
-          <div>
-            <div style={{ fontSize: '0.9rem', marginBottom: '0.25rem' }}>
-              {row.ocupacion} / {row.capacidad}
+          <div style={{ minWidth: '200px' }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              marginBottom: '0.25rem',
+              fontSize: '0.85rem'
+            }}>
+              <span>{stockActual} / {capacidad > 0 ? capacidad : '∞'} unidades</span>
+              <span style={{ fontWeight: '600', color: getColor() }}>
+                {capacidad > 0 ? `${porcentaje.toFixed(0)}%` : '-'}
+              </span>
             </div>
-            <div style={{ width: '100%', background: 'var(--bg-tertiary)', borderRadius: '4px', height: '6px' }}>
-              <div style={{ width: `${porcentaje}%`, background: porcentaje > 80 ? 'var(--error)' : 'var(--success)', height: '100%', borderRadius: '4px' }} />
-            </div>
+            {capacidad > 0 && (
+              <div style={{ 
+                width: '100%', 
+                height: '8px', 
+                background: 'var(--bg-tertiary)', 
+                borderRadius: '4px',
+                overflow: 'hidden'
+              }}>
+                <div style={{ 
+                  width: `${porcentaje}%`, 
+                  height: '100%', 
+                  background: getColor(),
+                  borderRadius: '4px',
+                  transition: 'width 0.3s ease'
+                }} />
+              </div>
+            )}
           </div>
         );
-      },
+      }
+    },
+    { 
+      header: 'Productos', 
+      accessor: 'totalProductos',
+      render: (row) => (
+        <span style={{ 
+          padding: '0.25rem 0.75rem', 
+          background: 'var(--bg-secondary)', 
+          borderRadius: '12px',
+          fontSize: '0.9rem',
+          fontWeight: '500'
+        }}>
+          {row.totalProductos || 0} items
+        </span>
+      )
+    },
+    { 
+      header: 'Valor Inventario', 
+      accessor: 'valorInventario',
+      render: (row) => (
+        <span style={{ fontWeight: '600', color: 'var(--primary-color)' }}>
+          ${(row.valorInventario || 0).toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        </span>
+      )
     },
   ];
 
@@ -154,7 +227,7 @@ function Almacenes() {
           <Card>
             <Table
               columns={columns}
-              data={almacenes}
+              data={almacenesConInventario}
               onEdit={handleEdit}
               onDelete={handleDelete}
             />

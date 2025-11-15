@@ -18,7 +18,7 @@ function Categorias() {
   const [formData, setFormData] = useState({
     nombre: '',
     descripcion: '',
-    activo: true
+    activa: true
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -31,6 +31,7 @@ function Categorias() {
     try {
       setLoading(true);
       const data = await categoriasAPI.getAll();
+      console.log('Categorías cargadas:', data);
       setCategorias(data);
     } catch (error) {
       console.error('Error cargando categorías:', error);
@@ -69,7 +70,7 @@ function Categorias() {
     setFormData({
       nombre: categoria.nombre,
       descripcion: categoria.descripcion || '',
-      activo: categoria.activo
+      activa: categoria.activa
     });
     setIsEditing(true);
     setEditingId(categoria._id);
@@ -90,7 +91,7 @@ function Categorias() {
   };
 
   const resetForm = () => {
-    setFormData({ nombre: '', descripcion: '', activo: true });
+    setFormData({ nombre: '', descripcion: '', activa: true });
     setIsEditing(false);
     setEditingId(null);
     setIsModalOpen(false);

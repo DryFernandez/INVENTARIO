@@ -5,7 +5,8 @@ const ClienteSchema = new mongoose.Schema({
   nombre: { type: String, required: true },
   ruc: { type: String }, // Para facturación
   direccion: { type: String },
-  contacto: { type: String }, // Email/teléfono
+  email: { type: String },
+  telefono: { type: String },
   fechaRegistro: { type: Date, default: Date.now },
   activo: { type: Boolean, default: true }
 });

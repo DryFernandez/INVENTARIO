@@ -1,7 +1,8 @@
 .compras-container {
     display: flex;
-    min-height: 100vh;
+    height: 100vh;
     background: var(--bg-secondary);
+    overflow: hidden;
 }
 
 .compras-main {
@@ -9,6 +10,8 @@
     margin-left: 250px;
     display: flex;
     flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
 }
 
 .compras-content {
@@ -16,6 +19,8 @@
     padding: 2rem;
     max-width: 1400px;
     width: 100%;
+    overflow-y: auto;
+    height: calc(100vh - 70px);
 }
 
 .compras-header {
@@ -45,4 +50,148 @@
     .compras-content {
         padding: 1rem;
     }
+}
+
+/* Estilos del formulario de compras */
+.compras-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-section {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    background: var(--bg-primary);
+}
+
+.form-section h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-select,
+.form-input {
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+}
+
+.form-select:focus,
+.form-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.1);
+}
+
+.proveedor-info {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+}
+
+.proveedor-info p {
+    margin: 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.proveedor-info strong {
+    color: var(--text-primary);
+}
+
+/* Tabla de items */
+.items-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 1rem;
+}
+
+.items-table thead {
+    background: var(--bg-darker);
+}
+
+.items-table th {
+    padding: 0.75rem;
+    text-align: left;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.items-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.9rem;
+}
+
+.items-table tbody tr:hover {
+    background: var(--bg-secondary);
+}
+
+.items-table tfoot td {
+    border-top: 2px solid var(--border);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    background: var(--bg-secondary);
+}
+
+.btn-delete {
+    background: none;
+    border: none;
+    color: var(--error);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0.25rem;
+    transition: all 0.3s ease;
+}
+
+.btn-delete:hover {
+    color: #c92a2a;
+    transform: scale(1.1);
+}
+
+/* Info Box */
+.info-box {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-secondary);
+}
+
+.info-box h3 {
+    margin: 1rem 0 0.5rem 0;
+    color: var(--text-primary);
+}
+
+.info-box p {
+    margin: 0.5rem 0;
 }

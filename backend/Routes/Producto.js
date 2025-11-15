@@ -1,19 +1,92 @@
 const express = require('express');
 const router = express.Router();
 const Producto = require('../Models/Producto');
+const ProductoAlmacen = require('../Models/ProductoAlmacen');
+const Almacen = require('../Models/Almacen');
+const Categoria = require('../Models/Categorias');
 const InventarioLog = require('../Models/InventarioLog');
-const { validarProducto } = require('../Validators/Producto');
+const { validarProducto, manejarErroresValidacion } = require('../Validators/Producto');
+
+// Función para generar SKU automático
+const generarSKU = async (categoriaId) => {
+  try {
+    const categoria = await Categoria.findById(categoriaId);
+    if (!categoria) return null;
+    
+    // Obtener las primeras 3 letras de la categoría en mayúsculas
+    const prefijo = categoria.nombre.substring(0, 3).toUpperCase().replace(/\s/g, '');
+    
+    // Contar productos existentes en esta categoría
+    const count = await Producto.countDocuments({ categoria: categoriaId });
+    
+    // Generar número secuencial de 4 dígitos
+    const numero = String(count + 1).padStart(4, '0');
+    
+    return `${prefijo}-${numero}`;
+  } catch (error) {
+    console.error('Error generando SKU:', error);
+    return null;
+  }
+};
+
+// Middleware para limpiar campos vacíos
+const limpiarCamposVacios = (req, res, next) => {
+  const camposOpcionales = ['almacen', 'proveedor', 'descripcion', 'imagen', 'stockMinimo'];
+  
+  // Eliminar campos opcionales que estén vacíos
+  camposOpcionales.forEach(campo => {
+    if (req.body[campo] === '' || req.body[campo] === null || req.body[campo] === undefined) {
+      delete req.body[campo];
+    }
+  });
+
+  // Convertir campos numéricos solo si tienen valor
+  if (req.body.precio && req.body.precio !== '') {
+    req.body.precio = parseFloat(req.body.precio);
+  }
+  if (req.body.stock !== undefined && req.body.stock !== '' && req.body.stock !== null) {
+    req.body.stock = parseInt(req.body.stock, 10);
+  } else if (req.body.stock === '' || req.body.stock === null) {
+    req.body.stock = 0; // Stock por defecto
+  }
+  if (req.body.stockMinimo && req.body.stockMinimo !== '') {
+    req.body.stockMinimo = parseInt(req.body.stockMinimo, 10);
+  }
+  if (req.body.stockMaximo && req.body.stockMaximo !== '') {
+    req.body.stockMaximo = parseInt(req.body.stockMaximo, 10);
+  }
+  
+  next();
+};
 
 // GET / - Obtener todos los productos
 router.get('/', async (req, res) => {
   try {
     const productos = await Producto.find({ activo: true })
       .populate('categoria', 'nombre')
-      .populate('almacen', 'nombre')
       .populate('proveedor', 'nombre')
       .sort({ nombre: 1 });
 
-    res.status(200).json(productos);
+    // Obtener el stock total y almacén de cada producto desde ProductoAlmacen
+    const productosConStock = await Promise.all(
+      productos.map(async (producto) => {
+        const inventarios = await ProductoAlmacen.find({ 
+          producto: producto._id,
+          activo: true 
+        }).populate('almacen', 'nombre');
+        
+        const stockTotal = inventarios.reduce((sum, inv) => sum + inv.stock, 0);
+        const almacen = inventarios.length > 0 ? inventarios[0].almacen : null;
+        
+        return {
+          ...producto.toObject(),
+          stock: stockTotal,
+          almacen: almacen
+        };
+      })
+    );
+
+    res.status(200).json(productosConStock);
   } catch (error) {
     console.error('Error en GET /productos:', error);
     res.status(500).json({ error: 'Error al obtener productos' });
@@ -68,45 +141,68 @@ router.get('/:id', async (req, res) => {
 });
 
 // POST / - Crear nuevo producto
-router.post('/', validarProducto, async (req, res) => {
+router.post('/', limpiarCamposVacios, validarProducto, manejarErroresValidacion, async (req, res) => {
   try {
-    const { codigo, nombre } = req.body;
+    const { nombre, categoria, almacen, stock } = req.body;
+    let { sku } = req.body;
 
-    // Verificar si el código ya existe
-    const existeCodigo = await Producto.findOne({ codigo });
-    if (existeCodigo) {
+    // Generar SKU automáticamente si no se proporciona
+    if (!sku || sku === '') {
+      sku = await generarSKU(categoria);
+      if (!sku) {
+        return res.status(400).json({
+          success: false,
+          error: 'No se pudo generar el SKU automáticamente'
+        });
+      }
+    }
+
+    // Verificar si el SKU ya existe
+    const existeSku = await Producto.findOne({ sku });
+    if (existeSku) {
       return res.status(400).json({
         success: false,
-        error: 'El código de producto ya está en uso'
+        error: 'El SKU de producto ya está en uso'
       });
     }
 
-    // Verificar si el nombre ya existe
-    const existeNombre = await Producto.findOne({ nombre });
-    if (existeNombre) {
-      return res.status(400).json({
-        success: false,
-        error: 'El nombre de producto ya está en uso'
-      });
-    }
+    // Crear el producto con el SKU generado
+    const nuevoProducto = await Producto.create({
+      ...req.body,
+      sku
+    });
 
-    const nuevoProducto = await Producto.create(req.body);
-
-    // Registrar inventario inicial
-    if (nuevoProducto.stock > 0) {
-      await InventarioLog.create({
+    // Si se especificó un almacén, crear el registro en ProductoAlmacen
+    if (almacen) {
+      await ProductoAlmacen.create({
         producto: nuevoProducto._id,
-        cantidad: nuevoProducto.stock,
-        tipo: 'inventario_inicial',
-        stockAnterior: 0,
-        stockNuevo: nuevoProducto.stock,
-        usuario: req.user?.id || 'sistema'
+        almacen: almacen,
+        stock: stock || 0,
+        stockMinimo: req.body.stockMinimo || 0,
+        stockMaximo: req.body.stockMaximo || 1000
       });
+
+      // Registrar inventario inicial
+      if (stock > 0) {
+        await InventarioLog.create({
+          producto: nuevoProducto._id,
+          almacen: almacen,
+          cantidad: stock,
+          tipo: 'entrada',
+          motivo: 'inventario_inicial',
+          stockAnterior: 0,
+          stockNuevo: stock
+        });
+      }
     }
+
+    const productoCompleto = await Producto.findById(nuevoProducto._id)
+      .populate('categoria', 'nombre')
+      .populate('proveedor', 'nombre');
 
     res.status(201).json({
       success: true,
-      data: nuevoProducto,
+      data: productoCompleto,
       message: 'Producto creado exitosamente'
     });
 
@@ -131,29 +227,18 @@ router.post('/', validarProducto, async (req, res) => {
 });
 
 // PUT /:id - Actualizar producto existente
-router.put('/:id', validarProducto, async (req, res) => {
+router.put('/:id', limpiarCamposVacios, validarProducto, manejarErroresValidacion, async (req, res) => {
   try {
     const { id } = req.params;
-    const { codigo, nombre } = req.body;
+    const { sku, nombre } = req.body;
 
-    // Verificar si el código ya existe en otro producto
-    if (codigo) {
-      const existeCodigo = await Producto.findOne({ codigo, _id: { $ne: id } });
-      if (existeCodigo) {
+    // Verificar si el SKU ya existe en otro producto
+    if (sku) {
+      const existeSku = await Producto.findOne({ sku, _id: { $ne: id } });
+      if (existeSku) {
         return res.status(400).json({
           success: false,
-          error: 'El código de producto ya está en uso'
-        });
-      }
-    }
-
-    // Verificar si el nombre ya existe en otro producto
-    if (nombre) {
-      const existeNombre = await Producto.findOne({ nombre, _id: { $ne: id } });
-      if (existeNombre) {
-        return res.status(400).json({
-          success: false,
-          error: 'El nombre de producto ya está en uso'
+          error: 'El SKU de producto ya está en uso'
         });
       }
     }
@@ -294,6 +379,53 @@ router.patch('/:id/stock', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Error al ajustar el stock del producto',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// DELETE /:id - Eliminar producto (soft delete)
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const producto = await Producto.findById(id);
+    
+    if (!producto) {
+      return res.status(404).json({
+        success: false,
+        error: 'Producto no encontrado'
+      });
+    }
+
+    // Soft delete - marcar como inactivo
+    producto.activo = false;
+    await producto.save();
+
+    // También marcar como inactivo en ProductoAlmacen
+    await ProductoAlmacen.updateMany(
+      { producto: id },
+      { activo: false }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: 'Producto eliminado exitosamente'
+    });
+
+  } catch (error) {
+    console.error(`Error en DELETE /productos/${req.params.id}:`, error);
+    
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de producto inválido'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Error al eliminar el producto',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
