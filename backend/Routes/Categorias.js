@@ -61,8 +61,12 @@ router.post('/',
     try {
       const { nombre, descripcion } = req.body;
       
-      // Verificar si la categoría ya existe
-      const existeCategoria = await Categoria.findOne({ nombre });
+      // Verificar si la categoría ya existe (solo activas)
+      const existeCategoria = await Categoria.findOne({ 
+        nombre, 
+        activa: true 
+      });
+      
       if (existeCategoria) {
         return res.status(400).json({
           success: false,
@@ -70,10 +74,31 @@ router.post('/',
         });
       }
 
+      // Si existe una categoría inactiva con el mismo nombre, reactivarla
+      const categoriaInactiva = await Categoria.findOne({ 
+        nombre, 
+        activa: false 
+      });
+
+      if (categoriaInactiva) {
+        categoriaInactiva.activa = true;
+        categoriaInactiva.descripcion = descripcion;
+        categoriaInactiva.actualizadoPor = req.user.id;
+        categoriaInactiva.fechaActualizacion = Date.now();
+        await categoriaInactiva.save();
+
+        return res.status(201).json({
+          success: true,
+          data: categoriaInactiva,
+          message: 'Categoría reactivada exitosamente'
+        });
+      }
+
       const nuevaCategoria = await Categoria.create({
         nombre,
         descripcion,
-        creadoPor: req.user.id
+        creadoPor: req.user.id,
+        activa: true
       });
 
       res.status(201).json({

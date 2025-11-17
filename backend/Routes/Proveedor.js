@@ -54,23 +54,40 @@ router.get('/:id', async (req, res) => {
 // POST / - Crear nuevo proveedor
 router.post('/', validarProveedor, async (req, res) => {
   try {
+    console.log('📦 Datos recibidos en POST /proveedores:', JSON.stringify(req.body, null, 2));
+    
     const { ruc, email } = req.body;
 
-    // Verificar si el RUC ya existe
-    const existeRuc = await Proveedor.findOne({ ruc });
-    if (existeRuc) {
+    // Verificar si el RUC ya existe en proveedores activos
+    const existeRucActivo = await Proveedor.findOne({ ruc, activo: true });
+    if (existeRucActivo) {
       return res.status(400).json({
         success: false,
         error: 'El RUC ya está registrado'
       });
     }
 
-    // Verificar si el email ya existe
-    const existeEmail = await Proveedor.findOne({ email });
-    if (existeEmail) {
+    // Verificar si el email ya existe en proveedores activos
+    const existeEmailActivo = await Proveedor.findOne({ email, activo: true });
+    if (existeEmailActivo) {
       return res.status(400).json({
         success: false,
         error: 'El email ya está registrado'
+      });
+    }
+
+    // Si existe un proveedor inactivo con el mismo RUC, reactivarlo
+    const proveedorInactivo = await Proveedor.findOne({ ruc, activo: false });
+    if (proveedorInactivo) {
+      // Actualizar datos del proveedor inactivo
+      Object.assign(proveedorInactivo, req.body);
+      proveedorInactivo.activo = true;
+      await proveedorInactivo.save();
+
+      return res.status(201).json({
+        success: true,
+        data: proveedorInactivo,
+        message: 'Proveedor reactivado exitosamente'
       });
     }
 

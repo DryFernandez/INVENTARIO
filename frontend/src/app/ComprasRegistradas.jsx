@@ -6,9 +6,10 @@ import Card from '../components/common/Card'
 import Table from '../components/common/Table'
 import Modal from '../components/common/Modal'
 import { IoMdSearch, IoMdEye } from 'react-icons/io'
-import { FaFileInvoice, FaBoxOpen, FaTruck } from 'react-icons/fa'
+import { FaFileInvoice, FaBoxOpen, FaTruck, FaFileExcel } from 'react-icons/fa'
 import { comprasAPI } from '../services/api'
 import { formatearMoneda, formatearMonedaCompleta } from '../utils/formatters'
+import { exportToExcel, formatDataForExport } from '../utils/excelExport'
 
 function ComprasRegistradas() {
   const [compras, setCompras] = useState([]);
@@ -41,6 +42,24 @@ function ComprasRegistradas() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportarCompras = () => {
+    const dataExport = comprasFiltradas.map(compra => ({
+      'Número': compra.numeroCompra,
+      'Fecha': new Date(compra.fecha).toLocaleDateString(),
+      'Proveedor': compra.proveedor?.nombre || 'N/A',
+      'RUC': compra.proveedor?.ruc || 'N/A',
+      'Productos': compra.items?.length || 0,
+      'Subtotal': compra.subtotal,
+      'IGV': compra.igv,
+      'Total': compra.total,
+      'Estado': compra.estado,
+      'Método Pago': compra.metodoPago
+    }));
+    
+    const nombreArchivo = `compras_${new Date().toISOString().split('T')[0]}`;
+    exportToExcel(dataExport, nombreArchivo, 'Compras Registradas');
   };
 
   const filtrarCompras = () => {
@@ -163,6 +182,9 @@ function ComprasRegistradas() {
               <h1>Compras Registradas</h1>
               <p>Historial completo de todas las compras realizadas</p>
             </div>
+            <button className='btn-export' onClick={exportarCompras} disabled={comprasFiltradas.length === 0}>
+              <FaFileExcel /> Exportar a Excel
+            </button>
           </div>
 
           {/* Estadísticas */}

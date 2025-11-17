@@ -1,0 +1,93 @@
+/* css/ordenesCompra.css */
+.ordenes-compra-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.ordenes-compra-main {
+  flex: 1;
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ordenes-compra-content {
+  margin-top: 70px;
+  padding: 2rem;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.ordenes-compra-container .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.ordenes-compra-container .filtros {
+  margin-bottom: 20px;
+  display: flex;
+  gap: 10px;
+}
+
+.ordenes-compra-container .filtros select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  background: var(--bg-primary, white);
+  color: var(--text-primary, #333);
+}
+
+.ordenes-compra-container .filtros select:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.ordenes-compra-container .loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.ordenes-compra-container .acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-block;
+  text-align: center;
+}
+
+.badge-secondary { background: #6c757d; color: white; }
+.badge-info { background: #17a2b8; color: white; }
+.badge-warning { background: #ffc107; color: #000; }
+.badge-success { background: #28a745; color: white; }
+.badge-danger { background: #dc3545; color: white; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .ordenes-compra-main {
+    margin-left: 0;
+  }
+
+  .ordenes-compra-content {
+    padding: 1rem;
+  }
+
+  .ordenes-compra-container .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .ordenes-compra-container .filtros {
+    flex-direction: column;
+  }
+}

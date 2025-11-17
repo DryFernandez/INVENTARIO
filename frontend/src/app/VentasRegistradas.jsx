@@ -7,9 +7,10 @@ import Table from '../components/common/Table'
 import Button from '../components/common/Button'
 import Modal from '../components/common/Modal'
 import { IoMdSearch, IoMdEye } from 'react-icons/io'
-import { FaFileInvoice, FaCreditCard, FaMoneyBillWave } from 'react-icons/fa'
+import { FaFileInvoice, FaCreditCard, FaMoneyBillWave, FaFileExcel } from 'react-icons/fa'
 import { ventasAPI } from '../services/api'
 import { formatearMoneda, formatearMonedaCompleta } from '../utils/formatters'
+import { exportToExcel, formatDataForExport } from '../utils/excelExport'
 
 function VentasRegistradas() {
   const [ventas, setVentas] = useState([]);
@@ -42,6 +43,25 @@ function VentasRegistradas() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const exportarVentas = () => {
+    const dataExport = ventasFiltradas.map(venta => ({
+      'Comprobante': venta.numeroComprobante,
+      'Tipo': venta.tipoComprobante,
+      'Fecha': new Date(venta.fecha).toLocaleDateString(),
+      'Cliente': venta.cliente?.nombre || 'Cliente Final',
+      'RUC/DNI': venta.cliente?.ruc || venta.cliente?.dni || 'N/A',
+      'Productos': venta.items?.length || 0,
+      'Subtotal': venta.subtotal,
+      'IGV': venta.igv,
+      'Total': venta.total,
+      'Estado': venta.estado,
+      'Método Pago': venta.metodoPago
+    }));
+    
+    const nombreArchivo = `ventas_${new Date().toISOString().split('T')[0]}`;
+    exportToExcel(dataExport, nombreArchivo, 'Ventas Registradas');
   };
 
   const filtrarVentas = () => {
@@ -158,6 +178,9 @@ function VentasRegistradas() {
               <h1>Ventas Registradas</h1>
               <p>Historial completo de todas las ventas realizadas</p>
             </div>
+            <button className='btn-export' onClick={exportarVentas} disabled={ventasFiltradas.length === 0}>
+              <FaFileExcel /> Exportar a Excel
+            </button>
           </div>
 
           {/* Estadísticas */}

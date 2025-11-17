@@ -1,0 +1,361 @@
+.ventas-container {
+    display: flex;
+    height: 100vh;
+    background: var(--bg-secondary);
+    overflow: hidden;
+}
+
+.ventas-main {
+    flex: 1;
+    margin-left: 250px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    overflow: hidden;
+}
+
+.ventas-content {
+    margin-top: 70px;
+    padding: 2rem;
+    max-width: 1600px;
+    width: 100%;
+    overflow-y: auto;
+    height: calc(100vh - 70px);
+}
+
+.ventas-header {
+    margin-bottom: 2rem;
+}
+
+.ventas-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.ventas-layout {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+}
+
+/* Productos Section */
+.productos-section {
+    height: fit-content;
+}
+
+.search-productos {
+    margin-bottom: 1.5rem;
+}
+
+.productos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.producto-card {
+    background: var(--bg-secondary);
+    border: 2px solid var(--border-color);
+    border-radius: var(--border-radius-lg);
+    padding: 1rem;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.producto-card:hover {
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.producto-info h4 {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.producto-sku {
+    font-size: 0.85rem;
+    color: var(--text-tertiary);
+    margin-bottom: 0.75rem;
+}
+
+.producto-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.producto-precio {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.producto-stock {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+/* Carrito Section */
+.carrito-section {
+    position: sticky;
+    top: 90px;
+    height: fit-content;
+}
+
+.cliente-info {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.carrito-items {
+    max-height: 300px;
+    overflow-y: auto;
+    margin-bottom: 1.5rem;
+}
+
+.carrito-vacio {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-tertiary);
+}
+
+.carrito-vacio svg {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+.carrito-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    margin-bottom: 0.75rem;
+}
+
+.item-info {
+    flex: 1;
+}
+
+.item-info h4 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.item-info p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.item-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.qty-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: var(--bg-tertiary);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.qty-btn:hover {
+    background: var(--primary-color);
+    color: white;
+}
+
+.cantidad {
+    font-weight: 600;
+    min-width: 30px;
+    text-align: center;
+}
+
+.delete-btn {
+    width: 30px;
+    height: 30px;
+    border: none;
+    background: rgba(239, 68, 68, 0.1);
+    color: var(--error);
+    border-radius: var(--border-radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.delete-btn:hover {
+    background: var(--error);
+    color: white;
+}
+
+.item-total {
+    font-weight: 700;
+    color: var(--primary-color);
+    min-width: 80px;
+    text-align: right;
+}
+
+/* Método de pago */
+.metodo-pago {
+    margin-bottom: 1.5rem;
+}
+
+.metodo-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.metodo-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    border: 2px solid var(--border-color);
+    background: var(--bg-secondary);
+    border-radius: var(--border-radius);
+    cursor: pointer;
+    transition: var(--transition-fast);
+    font-weight: 500;
+}
+
+.metodo-btn svg {
+    font-size: 1.5rem;
+}
+
+.metodo-btn:hover {
+    border-color: var(--primary-color);
+}
+
+.metodo-btn.active {
+    border-color: var(--primary-color);
+    background: rgba(79, 70, 229, 0.1);
+    color: var(--primary-color);
+}
+
+/* Resumen */
+.resumen-venta {
+    background: var(--bg-secondary);
+    padding: 1.5rem;
+    border-radius: var(--border-radius);
+    margin-bottom: 1.5rem;
+}
+
+.resumen-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.resumen-total {
+    display: flex;
+    justify-content: space-between;
+    padding-top: 1rem;
+    margin-top: 1rem;
+    border-top: 2px solid var(--border-color);
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .ventas-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .carrito-section {
+        position: relative;
+        top: 0;
+    }
+}
+
+@media (max-width: 768px) {
+    .ventas-main {
+        margin-left: 0;
+    }
+
+    .ventas-content {
+        padding: 1rem;
+    }
+
+    .productos-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Modal de Pago con Tarjeta */
+.form-pago-tarjeta {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.form-pago-tarjeta .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-pago-tarjeta .form-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
+}
+
+.form-pago-tarjeta .input-label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.resumen-modal {
+    background: var(--bg-secondary);
+    padding: 1rem;
+    border-radius: var(--border-radius);
+    text-align: center;
+    margin-top: 0.5rem;
+}
+
+.resumen-modal p {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+}
+
+.resumen-modal strong {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    font-weight: 700;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.modal-actions button {
+    flex: 1;
+}

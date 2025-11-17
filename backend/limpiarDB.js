@@ -22,7 +22,7 @@ const limpiarBaseDeDatos = async () => {
 
     console.log('🗑️  Iniciando limpieza de la base de datos...\n');
 
-    // Limpiar todas las colecciones en orden
+    // Limpiar todas las colecciones en orden (excepto el admin)
     const colecciones = [
       { nombre: 'InventarioLog', modelo: InventarioLog },
       { nombre: 'Traslados', modelo: Traslado },
@@ -33,8 +33,7 @@ const limpiarBaseDeDatos = async () => {
       { nombre: 'Clientes', modelo: Cliente },
       { nombre: 'Proveedores', modelo: Proveedor },
       { nombre: 'Almacenes', modelo: Almacen },
-      { nombre: 'Categorías', modelo: Categoria },
-      { nombre: 'Usuarios', modelo: Usuario }
+      { nombre: 'Categorías', modelo: Categoria }
     ];
 
     for (const coleccion of colecciones) {
@@ -42,8 +41,13 @@ const limpiarBaseDeDatos = async () => {
       console.log(`  ✓ ${coleccion.nombre}: ${resultado.deletedCount} documentos eliminados`);
     }
 
+    // Eliminar todos los usuarios EXCEPTO el administrador
+    const usuariosEliminados = await Usuario.deleteMany({ rol: { $ne: 'administrador' } });
+    console.log(`  ✓ Usuarios: ${usuariosEliminados.deletedCount} documentos eliminados (administrador conservado)`);
+
     console.log('\n✅ Base de datos limpiada completamente');
-    console.log('\n📝 Nota: Ejecuta "node crearAdmin.js" para crear el usuario administrador inicial');
+    console.log('📝 Usuario administrador conservado');
+
 
   } catch (error) {
     console.error('❌ Error al limpiar la base de datos:', error);

@@ -1,0 +1,137 @@
+/* css/reportes.css */
+.reportes-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.reportes-main {
+  flex: 1;
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.reportes-content {
+  margin-top: 70px;
+  padding: 2rem;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.reportes-container h1 {
+  margin-bottom: 20px;
+}
+
+.filtros-card {
+  margin-bottom: 20px;
+}
+
+.filtros-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  align-items: end;
+}
+
+.filtros-grid label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  color: var(--text-primary, #333);
+}
+
+.filtros-grid select,
+.filtros-grid input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 4px;
+  background: var(--bg-primary, white);
+  color: var(--text-primary, #333);
+}
+
+.filtros-grid select:focus,
+.filtros-grid input:focus {
+  outline: none;
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.btn-container {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+}
+
+.acciones-reporte {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.totales-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.totales-grid h3 {
+  margin: 0 0 8px 0;
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
+}
+
+.valor-grande {
+  font-size: 28px;
+  font-weight: 700;
+  color: #007bff;
+  margin: 0;
+}
+
+.mt-3 {
+  margin-top: 20px;
+}
+
+.mb-3 {
+  margin-bottom: 20px;
+}
+
+.text-success {
+  color: #28a745;
+}
+
+.text-danger {
+  color: #dc3545;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.resultados {
+  margin-top: 20px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .reportes-main {
+    margin-left: 0;
+  }
+
+  .reportes-content {
+    padding: 1rem;
+  }
+
+  .filtros-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .totales-grid {
+    grid-template-columns: 1fr;
+  }
+}

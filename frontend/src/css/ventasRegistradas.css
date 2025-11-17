@@ -42,6 +42,31 @@
     font-size: 0.95rem;
 }
 
+.btn-export {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(39, 174, 96, 0.2);
+}
+
+.btn-export:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(39, 174, 96, 0.3);
+}
+
+.btn-export:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 /* Estadísticas */
 .stats-grid {
     display: grid;

@@ -1,0 +1,59 @@
+/* css/cotizaciones.css */
+.cotizaciones-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.cotizaciones-main {
+  flex: 1;
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cotizaciones-content {
+  margin-top: 70px;
+  padding: 2rem;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.cotizaciones-container .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.cotizaciones-container .loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.cotizaciones-container .acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.ml-2 {
+  margin-left: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cotizaciones-main {
+    margin-left: 0;
+  }
+
+  .cotizaciones-content {
+    padding: 1rem;
+  }
+
+  .cotizaciones-container .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}

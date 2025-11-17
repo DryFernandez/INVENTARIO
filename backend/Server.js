@@ -16,7 +16,7 @@ mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/inventari
 .then(() => console.log('✅ Conectado a MongoDB'))
 .catch(err => console.error('❌ Error de conexión a MongoDB:', err));
 
-// Rutas
+// Rutas existentes
 app.use('/api/auth', require('./Routes/Auth'));
 app.use('/api/usuarios', require('./Routes/Usuario'));
 app.use('/api/categorias', require('./Routes/Categorias'));
@@ -29,6 +29,19 @@ app.use('/api/ventas', require('./Routes/Venta'));
 app.use('/api/traslados', require('./Routes/Traslado'));
 app.use('/api/inventario-almacen', require('./Routes/ProductoAlmacen'));
 app.use('/api/inventario/log', require('./Routes/InventarioLog'));
+
+// Nuevas rutas
+app.use('/api/lotes', require('./Routes/Lote'));
+app.use('/api/variantes', require('./Routes/VarianteProducto'));
+app.use('/api/ordenes-compra', require('./Routes/OrdenCompra'));
+app.use('/api/cotizaciones', require('./Routes/Cotizacion'));
+app.use('/api/conteos-fisicos', require('./Routes/ConteoFisico'));
+app.use('/api/permisos', require('./Routes/Permiso'));
+app.use('/api/auditoria', require('./Routes/Auditoria'));
+app.use('/api/reservas', require('./Routes/ReservaStock'));
+app.use('/api/alertas', require('./Routes/Alerta'));
+app.use('/api/reportes', require('./Routes/Reportes'));
+app.use('/api/kardex', require('./Routes/Kardex'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {

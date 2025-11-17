@@ -29,12 +29,48 @@ router.post('/registrar', validarUsuario, async (req, res) => {
       });
     }
 
-    // Verificar si el email ya existe
-    const existeUsuario = await Usuario.findOne({ email });
-    if (existeUsuario) {
+    // Verificar si el email ya existe en usuarios activos
+    const usuarioActivo = await Usuario.findOne({ email, activo: true });
+    if (usuarioActivo) {
       return res.status(400).json({
         success: false,
         error: 'El email ya está registrado'
+      });
+    }
+
+    // Si existe un usuario inactivo con el mismo email, reactivarlo
+    const usuarioInactivo = await Usuario.findOne({ email, activo: false });
+    if (usuarioInactivo) {
+      // Actualizar datos del usuario inactivo
+      usuarioInactivo.nombre = req.body.nombre;
+      usuarioInactivo.rol = rol;
+      
+      // Actualizar password si se proporciona
+      if (password) {
+        const salt = await bcrypt.genSalt(10);
+        usuarioInactivo.password = await bcrypt.hash(password, salt);
+      }
+      
+      usuarioInactivo.activo = true;
+      usuarioInactivo.estado = true;
+      await usuarioInactivo.save();
+
+      // Generar JWT
+      const token = jwt.sign(
+        { id: usuarioInactivo._id, rol: usuarioInactivo.rol },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRE }
+      );
+
+      // Omitir password en la respuesta
+      const usuarioResponse = usuarioInactivo.toObject();
+      delete usuarioResponse.password;
+
+      return res.status(201).json({
+        success: true,
+        data: usuarioResponse,
+        token,
+        message: 'Usuario reactivado exitosamente'
       });
     }
 

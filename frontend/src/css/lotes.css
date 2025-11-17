@@ -1,0 +1,93 @@
+/* css/lotes.css */
+.lotes-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.lotes-main {
+  flex: 1;
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lotes-content {
+  margin-top: 70px;
+  padding: 2rem;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.lotes-container .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.lotes-container .filtros {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.lotes-container .filtros button {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color, #ddd);
+  background: var(--bg-primary, white);
+  color: var(--text-primary, #333);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.lotes-container .filtros button:hover {
+  background: var(--bg-hover, #f5f5f5);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.lotes-container .filtros button.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.lotes-container .loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.lotes-container .acciones {
+  display: flex;
+  gap: 8px;
+}
+
+.ubicacion {
+  font-size: 12px;
+  background: #f0f0f0;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .lotes-main {
+    margin-left: 0;
+  }
+
+  .lotes-content {
+    padding: 1rem;
+  }
+
+  .lotes-container .header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .lotes-container .filtros {
+    flex-direction: column;
+  }
+}

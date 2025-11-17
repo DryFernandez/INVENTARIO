@@ -1,0 +1,49 @@
+/* css/conteosFisicos.css */
+.conteos-container {
+  display: flex;
+  min-height: 100vh;
+  background: var(--bg-secondary);
+}
+
+.conteos-main {
+  flex: 1;
+  margin-left: 250px;
+  display: flex;
+  flex-direction: column;
+}
+
+.conteos-content {
+  margin-top: 70px;
+  padding: 2rem;
+  max-width: 1400px;
+  width: 100%;
+}
+
+.conteos-container .header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.conteos-container .loading {
+  text-align: center;
+  padding: 40px;
+  color: #666;
+}
+
+.conteos-container .acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.text-warning {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.text-success {
+  color: #28a745;
+  font-weight: 600;
+}

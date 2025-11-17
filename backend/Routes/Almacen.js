@@ -59,6 +59,43 @@ router.post('/',
   validarAlmacen, 
   async (req, res) => {
     try {
+      const { nombre, ubicacion, capacidad, descripcion } = req.body;
+      
+      // Verificar si existe un almacén activo con el mismo nombre
+      const almacenActivo = await Almacen.findOne({ 
+        nombre, 
+        activo: true 
+      });
+      
+      if (almacenActivo) {
+        return res.status(400).json({
+          success: false,
+          error: 'Ya existe un almacén activo con ese nombre'
+        });
+      }
+
+      // Si existe un almacén inactivo con el mismo nombre, reactivarlo
+      const almacenInactivo = await Almacen.findOne({ 
+        nombre, 
+        activo: false 
+      });
+
+      if (almacenInactivo) {
+        almacenInactivo.activo = true;
+        almacenInactivo.ubicacion = ubicacion;
+        almacenInactivo.capacidad = capacidad;
+        almacenInactivo.descripcion = descripcion;
+        almacenInactivo.actualizadoPor = req.user.id;
+        almacenInactivo.fechaActualizacion = Date.now();
+        await almacenInactivo.save();
+
+        return res.status(201).json({
+          success: true,
+          data: almacenInactivo,
+          message: 'Almacén reactivado exitosamente'
+        });
+      }
+      
       const nuevoAlmacen = new Almacen({
         ...req.body,
         creadoPor: req.user.id

@@ -7,10 +7,12 @@ import Button from "../components/common/Button";
 import Modal from "../components/common/Modal";
 import Input from "../components/common/Input";
 import Card from "../components/common/Card";
+import ConfirmDialog from "../components/common/ConfirmDialog";
 import { productosAPI, categoriasAPI, almacenesAPI, proveedoresAPI } from "../services/api";
 import { IoIosAdd, IoMdSearch } from "react-icons/io";
 import { FaFilter, FaFileExport } from "react-icons/fa";
 import { formatearMoneda } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 function Productos() {
   const [productos, setProductos] = useState([]);
@@ -36,6 +38,8 @@ function Productos() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, producto: null });
+  const { success, error, warning } = useToast();
 
   // Cargar datos desde el backend
   useEffect(() => {
@@ -99,19 +103,18 @@ function Productos() {
     try {
       if (isEditing) {
         // Actualizar producto
-        const updated = await productosAPI.update(editingId, formData);
-        setProductos(productos.map((p) => (p._id === editingId ? updated : p)));
-        alert('Producto actualizado');
+        await productosAPI.update(editingId, formData);
+        success('Producto actualizado exitosamente');
       } else {
         // Crear nuevo producto
-        const newProduct = await productosAPI.create(formData);
-        setProductos([...productos, newProduct]);
-        alert('Producto creado exitosamente');
+        await productosAPI.create(formData);
+        success('Producto creado exitosamente');
       }
+      await cargarDatos();
       resetForm();
-    } catch (error) {
-      console.error('Error al guardar producto:', error);
-      alert(error.message || 'Error al guardar el producto');
+    } catch (err) {
+      console.error('Error al guardar producto:', err);
+      error(err.message || 'Error al guardar el producto');
     }
   };
 
@@ -133,16 +136,19 @@ function Productos() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (producto) => {
-    if (window.confirm(`¿Eliminar ${producto.nombre}?`)) {
-      try {
-        await productosAPI.delete(producto._id);
-        setProductos(productos.filter((p) => p._id !== producto._id));
-        alert('Producto eliminado');
-      } catch (error) {
-        console.error('Error al eliminar producto:', error);
-        alert('Error al eliminar el producto');
-      }
+  const handleDelete = (producto) => {
+    setConfirmDialog({ isOpen: true, producto });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await productosAPI.delete(confirmDialog.producto._id);
+      success('Producto eliminado exitosamente');
+      await cargarDatos();
+      setConfirmDialog({ isOpen: false, producto: null });
+    } catch (err) {
+      console.error('Error al eliminar producto:', err);
+      error(err.message || 'Error al eliminar el producto');
     }
   };
 
@@ -398,6 +404,17 @@ function Productos() {
           </div>
         </form>
       </Modal>
+
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        title="Confirmar Eliminación"
+        message={`¿Estás seguro de eliminar el producto "${confirmDialog.producto?.nombre}"? Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        cancelText="Cancelar"
+        type="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setConfirmDialog({ isOpen: false, producto: null })}
+      />
     </div>
   );
 }

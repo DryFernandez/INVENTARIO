@@ -98,7 +98,7 @@ router.get('/:id', async (req, res) => {
   try {
     const producto = await Producto.findOne({
       _id: req.params.id,
-      estado: true
+      activo: true
     }).populate('categoria', 'nombre');
 
     if (!producto) {
@@ -157,12 +157,64 @@ router.post('/', limpiarCamposVacios, validarProducto, manejarErroresValidacion,
       }
     }
 
-    // Verificar si el SKU ya existe
-    const existeSku = await Producto.findOne({ sku });
-    if (existeSku) {
+    // Verificar si el SKU ya existe en productos activos
+    const existeSkuActivo = await Producto.findOne({ sku, activo: true });
+    if (existeSkuActivo) {
       return res.status(400).json({
         success: false,
         error: 'El SKU de producto ya está en uso'
+      });
+    }
+
+    // Si existe un producto inactivo con el mismo SKU, reactivarlo
+    const productoInactivo = await Producto.findOne({ sku, activo: false });
+    if (productoInactivo) {
+      // Actualizar datos del producto inactivo
+      Object.assign(productoInactivo, req.body);
+      productoInactivo.sku = sku;
+      productoInactivo.activo = true;
+      await productoInactivo.save();
+
+      // Si se especificó un almacén, actualizar o crear el registro en ProductoAlmacen
+      if (almacen) {
+        const existeEnAlmacen = await ProductoAlmacen.findOne({
+          producto: productoInactivo._id,
+          almacen: almacen
+        });
+
+        if (existeEnAlmacen) {
+          existeEnAlmacen.stock = stock || 0;
+          existeEnAlmacen.stockMinimo = req.body.stockMinimo || 0;
+          existeEnAlmacen.stockMaximo = req.body.stockMaximo || 1000;
+          await existeEnAlmacen.save();
+        } else {
+          await ProductoAlmacen.create({
+            producto: productoInactivo._id,
+            almacen: almacen,
+            stock: stock || 0,
+            stockMinimo: req.body.stockMinimo || 0,
+            stockMaximo: req.body.stockMaximo || 1000
+          });
+        }
+
+        // Registrar inventario inicial si hay stock
+        if (stock > 0) {
+          await InventarioLog.create({
+            producto: productoInactivo._id,
+            almacen: almacen,
+            cantidad: stock,
+            tipo: 'entrada',
+            motivo: 'reactivacion_producto',
+            stockAnterior: 0,
+            stockNuevo: stock
+          });
+        }
+      }
+
+      return res.status(201).json({
+        success: true,
+        data: productoInactivo,
+        message: 'Producto reactivado exitosamente'
       });
     }
 
