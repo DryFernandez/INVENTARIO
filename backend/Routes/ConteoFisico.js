@@ -47,27 +47,102 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// Crear conteo físico
-router.post('/', auth, async (req, res) => {
-  try {
-    // Generar número de conteo
-    const ultimoConteo = await ConteoFisico.findOne().sort({ numeroConteo: -1 });
-    const numeroConteo = ultimoConteo 
-      ? `CF-${String(parseInt(ultimoConteo.numeroConteo.split('-')[1]) + 1).padStart(6, '0')}`
-      : 'CF-000001';
+// Función para generar número de conteo automático
+const generarNumeroConteo = async () => {
+  const fecha = new Date();
+  const year = fecha.getFullYear().toString().slice(-2);
+  const month = String(fecha.getMonth() + 1).padStart(2, '0');
+  const prefijo = `CF${year}${month}`;
+  
+  // Contar conteos del mes actual
+  const inicioMes = new Date(fecha.getFullYear(), fecha.getMonth(), 1);
+  const finMes = new Date(fecha.getFullYear(), fecha.getMonth() + 1, 0);
+  
+  const count = await ConteoFisico.countDocuments({
+    createdAt: { $gte: inicioMes, $lte: finMes }
+  });
+  
+  const numero = String(count + 1).padStart(3, '0');
+  return `${prefijo}-${numero}`;
+};
 
-    // Obtener productos para el conteo
-    const filtroProductos = { almacen: req.body.almacen };
+// Middleware para limpiar campos vacíos
+const limpiarCamposVacios = (req, res, next) => {
+  const camposOpcionales = ['categoria', 'observaciones'];
+  
+  // Eliminar campos opcionales que estén vacíos
+  camposOpcionales.forEach(campo => {
+    if (req.body[campo] === '' || req.body[campo] === null || req.body[campo] === undefined) {
+      delete req.body[campo];
+    }
+  });
+  
+  next();
+};
+
+// Crear conteo físico
+router.post('/', auth, limpiarCamposVacios, async (req, res) => {
+  try {
+    // Validar que si el tipo es 'categoria', se proporcione la categoría
+    if (req.body.tipo === 'categoria' && !req.body.categoria) {
+      return res.status(400).json({
+        success: false,
+        error: 'Para un conteo por categoría, debe especificar la categoría'
+      });
+    }
+
+    // Generar número de conteo
+    const numeroConteo = await generarNumeroConteo();
+
+    // Obtener productos para el conteo según el tipo
+    let filtroProductos = { activo: true };
+    
     if (req.body.tipo === 'categoria' && req.body.categoria) {
       filtroProductos.categoria = req.body.categoria;
     }
 
-    const productos = await Producto.find(filtroProductos).select('_id stock costo');
+    // Si se especifica almacén, filtrar por productos en ese almacén
+    if (req.body.almacen) {
+      const productosEnAlmacen = await ProductoAlmacen.find({ 
+        almacen: req.body.almacen,
+        activo: true 
+      }).select('producto stock');
+      
+      const productosIds = productosEnAlmacen.map(pa => pa.producto);
+      filtroProductos._id = { $in: productosIds };
+    }
+
+    const productos = await Producto.find(filtroProductos)
+      .select('_id nombre sku costo categoria')
+      .populate('categoria', 'nombre');
     
-    const items = productos.map(p => ({
-      producto: p._id,
-      stockSistema: p.stock
-    }));
+    if (productos.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No se encontraron productos para el conteo con los filtros especificados'
+      });
+    }
+
+    // Crear items del conteo con stock del almacén específico
+    const items = [];
+    for (const producto of productos) {
+      let stockSistema = 0;
+      
+      if (req.body.almacen) {
+        const productoAlmacen = await ProductoAlmacen.findOne({
+          producto: producto._id,
+          almacen: req.body.almacen
+        });
+        stockSistema = productoAlmacen ? productoAlmacen.stock : 0;
+      } else {
+        stockSistema = producto.stock || 0;
+      }
+      
+      items.push({
+        producto: producto._id,
+        stockSistema: stockSistema
+      });
+    }
 
     const conteo = new ConteoFisico({
       ...req.body,
@@ -77,9 +152,35 @@ router.post('/', auth, async (req, res) => {
     });
     
     await conteo.save();
-    res.status(201).json(conteo);
+    
+    // Poblar referencias para la respuesta
+    await conteo.populate([
+      { path: 'almacen', select: 'nombre' },
+      { path: 'categoria', select: 'nombre' },
+      { path: 'creadoPor', select: 'nombre' }
+    ]);
+    
+    console.log(`✅ Conteo físico ${numeroConteo} creado con ${items.length} productos`);
+    
+    res.status(201).json({
+      success: true,
+      data: conteo,
+      message: 'Conteo físico planificado exitosamente'
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error('❌ Error creando conteo físico:', error);
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        error: 'Error de validación',
+        details: errors
+      });
+    }
+    res.status(500).json({ 
+      success: false,
+      error: error.message || 'Error al crear el conteo físico'
+    });
   }
 });
 

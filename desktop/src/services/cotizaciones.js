@@ -8,10 +8,18 @@ const handleResponse = async (response) => {
     window.location.href = '/login';
     throw new Error('Sesión expirada');
   }
+  
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ error: 'Error en el servidor' }));
-    throw new Error(error.error || 'Error en la petición');
+    const errorText = await response.text();
+    let error;
+    try {
+      error = JSON.parse(errorText);
+    } catch {
+      error = { error: errorText || 'Error en el servidor' };
+    }
+    throw new Error(error.error || error.message || 'Error en la petición');
   }
+  
   return response.json();
 };
 
@@ -22,9 +30,18 @@ const getHeaders = () => ({
 
 export const cotizacionesService = {
   getAll: async (filtros = {}) => {
-    const params = new URLSearchParams(filtros).toString();
-    const response = await fetch(`${API_URL}/cotizaciones${params ? `?${params}` : ''}`, {
-      headers: getHeaders()
+    const filtrosLimpios = Object.fromEntries(
+      Object.entries(filtros).filter(([key, value]) => value && value.trim && value.trim() !== '')
+    );
+    
+    const params = new URLSearchParams(filtrosLimpios).toString();
+    const url = `${API_URL}/cotizaciones${params ? `?${params}` : ''}`;
+    
+    const response = await fetch(url, { 
+      headers: {
+        ...getHeaders(),
+        'Cache-Control': 'no-cache'
+      }
     });
     return handleResponse(response);
   },

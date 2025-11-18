@@ -56,42 +56,64 @@ router.post('/', validarProveedor, async (req, res) => {
   try {
     console.log('📦 Datos recibidos en POST /proveedores:', JSON.stringify(req.body, null, 2));
     
-    const { ruc, email } = req.body;
+    const { ruc, nombre, contacto } = req.body;
 
-    // Verificar si el RUC ya existe en proveedores activos
-    const existeRucActivo = await Proveedor.findOne({ ruc, activo: true });
-    if (existeRucActivo) {
+    // Verificar si el RUC ya existe en proveedores activos (solo si se proporciona)
+    if (ruc && ruc.trim()) {
+      const existeRucActivo = await Proveedor.findOne({ ruc: ruc.trim(), activo: true });
+      if (existeRucActivo) {
+        return res.status(400).json({
+          success: false,
+          error: 'El RUC ya está registrado'
+        });
+      }
+    }
+
+    // Verificar si el nombre ya existe en proveedores activos
+    const existeNombreActivo = await Proveedor.findOne({ 
+      nombre: { $regex: new RegExp('^' + nombre.trim() + '$', 'i') }, 
+      activo: true 
+    });
+    if (existeNombreActivo) {
       return res.status(400).json({
         success: false,
-        error: 'El RUC ya está registrado'
+        error: 'Ya existe un proveedor con ese nombre'
       });
     }
 
-    // Verificar si el email ya existe en proveedores activos
-    const existeEmailActivo = await Proveedor.findOne({ email, activo: true });
-    if (existeEmailActivo) {
-      return res.status(400).json({
-        success: false,
-        error: 'El email ya está registrado'
-      });
+    // Transformar los datos del frontend al formato del modelo
+    const datosProveedor = {
+      nombre: req.body.nombre.trim(),
+      ruc: req.body.ruc ? req.body.ruc.trim() : undefined,
+      direccion: req.body.direccion ? req.body.direccion.trim() : undefined,
+      activo: req.body.activo !== undefined ? req.body.activo : true
+    };
+
+    // Si hay contacto, agregarlo al contactoPrincipal
+    if (req.body.contacto && req.body.contacto.trim()) {
+      datosProveedor.contactoPrincipal = {
+        telefono: req.body.contacto.trim()
+      };
     }
 
     // Si existe un proveedor inactivo con el mismo RUC, reactivarlo
-    const proveedorInactivo = await Proveedor.findOne({ ruc, activo: false });
-    if (proveedorInactivo) {
-      // Actualizar datos del proveedor inactivo
-      Object.assign(proveedorInactivo, req.body);
-      proveedorInactivo.activo = true;
-      await proveedorInactivo.save();
+    if (ruc && ruc.trim()) {
+      const proveedorInactivo = await Proveedor.findOne({ ruc: ruc.trim(), activo: false });
+      if (proveedorInactivo) {
+        // Actualizar datos del proveedor inactivo
+        Object.assign(proveedorInactivo, datosProveedor);
+        proveedorInactivo.activo = true;
+        await proveedorInactivo.save();
 
-      return res.status(201).json({
-        success: true,
-        data: proveedorInactivo,
-        message: 'Proveedor reactivado exitosamente'
-      });
+        return res.status(201).json({
+          success: true,
+          data: proveedorInactivo,
+          message: 'Proveedor reactivado exitosamente'
+        });
+      }
     }
 
-    const nuevoProveedor = await Proveedor.create(req.body);
+    const nuevoProveedor = await Proveedor.create(datosProveedor);
 
     res.status(201).json({
       success: true,
@@ -123,7 +145,7 @@ router.post('/', validarProveedor, async (req, res) => {
 router.put('/:id', validarProveedor, async (req, res) => {
   try {
     const { id } = req.params;
-    const { ruc, email } = req.body;
+    const { ruc, nombre } = req.body;
 
     // Verificar si el proveedor existe
     const proveedorExistente = await Proveedor.findById(id);
@@ -135,10 +157,11 @@ router.put('/:id', validarProveedor, async (req, res) => {
     }
 
     // Verificar si el nuevo RUC ya existe en otro proveedor
-    if (ruc && ruc !== proveedorExistente.ruc) {
+    if (ruc && ruc.trim() && ruc.trim() !== proveedorExistente.ruc) {
       const rucExiste = await Proveedor.findOne({ 
-        ruc,
-        _id: { $ne: id }
+        ruc: ruc.trim(),
+        _id: { $ne: id },
+        activo: true
       });
       if (rucExiste) {
         return res.status(400).json({
@@ -148,23 +171,40 @@ router.put('/:id', validarProveedor, async (req, res) => {
       }
     }
 
-    // Verificar si el nuevo email ya existe en otro proveedor
-    if (email && email !== proveedorExistente.email) {
-      const emailExiste = await Proveedor.findOne({ 
-        email,
-        _id: { $ne: id }
+    // Verificar si el nuevo nombre ya existe en otro proveedor
+    if (nombre && nombre.trim().toLowerCase() !== proveedorExistente.nombre.toLowerCase()) {
+      const nombreExiste = await Proveedor.findOne({ 
+        nombre: { $regex: new RegExp('^' + nombre.trim() + '$', 'i') },
+        _id: { $ne: id },
+        activo: true
       });
-      if (emailExiste) {
+      if (nombreExiste) {
         return res.status(400).json({
           success: false,
-          error: 'El email ya está registrado en otro proveedor'
+          error: 'Ya existe otro proveedor con ese nombre'
         });
       }
     }
 
+    // Transformar los datos del frontend al formato del modelo
+    const datosActualizados = {
+      nombre: req.body.nombre.trim(),
+      ruc: req.body.ruc ? req.body.ruc.trim() : proveedorExistente.ruc,
+      direccion: req.body.direccion ? req.body.direccion.trim() : proveedorExistente.direccion,
+      activo: req.body.activo !== undefined ? req.body.activo : proveedorExistente.activo
+    };
+
+    // Si hay contacto, actualizar el contactoPrincipal
+    if (req.body.contacto && req.body.contacto.trim()) {
+      datosActualizados.contactoPrincipal = {
+        ...proveedorExistente.contactoPrincipal,
+        telefono: req.body.contacto.trim()
+      };
+    }
+
     const proveedorActualizado = await Proveedor.findByIdAndUpdate(
       id,
-      req.body,
+      datosActualizados,
       { new: true, runValidators: true }
     );
 
@@ -203,41 +243,42 @@ router.put('/:id', validarProveedor, async (req, res) => {
 // DELETE /:id - Desactivar proveedor (borrado lógico)
 router.delete('/:id', async (req, res) => {
   try {
-    // Verificar si el proveedor tiene productos asociados
-    const proveedorConProductos = await Proveedor.findOne({
-      _id: req.params.id,
-      productos: { $exists: true, $not: { $size: 0 } }
-    });
-
-    if (proveedorConProductos) {
-      return res.status(400).json({
-        success: false,
-        error: 'No se puede desactivar un proveedor con productos asociados',
-        productosAsociados: proveedorConProductos.productos.length
-      });
-    }
-
-    const proveedorDesactivado = await Proveedor.findByIdAndUpdate(
-      req.params.id,
-      { activo: false },
-      { new: true }
-    );
-
-    if (!proveedorDesactivado) {
+    console.log(`🗑️ Intentando eliminar proveedor con ID: ${req.params.id}`);
+    
+    // Verificar si el proveedor existe y está activo
+    const proveedorExistente = await Proveedor.findById(req.params.id);
+    
+    if (!proveedorExistente) {
       return res.status(404).json({
         success: false,
         error: 'Proveedor no encontrado'
       });
     }
 
+    if (!proveedorExistente.activo) {
+      return res.status(400).json({
+        success: false,
+        error: 'El proveedor ya está desactivado'
+      });
+    }
+
+    // Desactivar el proveedor
+    const proveedorDesactivado = await Proveedor.findByIdAndUpdate(
+      req.params.id,
+      { activo: false },
+      { new: true }
+    );
+
+    console.log(`✅ Proveedor desactivado exitosamente: ${proveedorDesactivado.nombre}`);
+
     res.status(200).json({
       success: true,
       data: proveedorDesactivado,
-      message: 'Proveedor desactivado exitosamente'
+      message: 'Proveedor eliminado exitosamente'
     });
 
   } catch (error) {
-    console.error(`Error en DELETE /proveedores/${req.params.id}:`, error);
+    console.error(`❌ Error en DELETE /proveedores/${req.params.id}:`, error);
     
     if (error.name === 'CastError') {
       return res.status(400).json({
@@ -248,7 +289,7 @@ router.delete('/:id', async (req, res) => {
     
     res.status(500).json({
       success: false,
-      error: 'Error al desactivar el proveedor',
+      error: 'Error al eliminar el proveedor',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

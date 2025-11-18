@@ -1,39 +1,36 @@
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 
 exports.validarProveedor = [
   body('nombre')
     .notEmpty().withMessage('El nombre es requerido')
     .isString().withMessage('Debe ser texto')
     .trim(),
+  body('contacto')
+    .optional()
+    .isString().withMessage('El contacto debe ser texto')
+    .trim(),
   body('ruc')
-    .optional()
-    .isString().withMessage('Debe ser texto')
-    .isLength({ min: 11, max: 11 }).withMessage('El RUC debe tener 11 dígitos')
-    .matches(/^[0-9]+$/).withMessage('El RUC solo debe contener números'),
-  body('contactoPrincipal.telefono')
-    .optional()
-    .isString().withMessage('Debe ser texto')
-    .trim(),
-  body('contactoPrincipal.email')
-    .optional()
-    .isEmail().withMessage('Debe ser un email válido')
-    .normalizeEmail(),
-  body('contactoPrincipal.nombre')
-    .optional()
-    .isString().withMessage('Debe ser texto')
-    .trim(),
-  body('contactoPrincipal.cargo')
     .optional()
     .isString().withMessage('Debe ser texto')
     .trim(),
   body('direccion')
     .optional()
-    .isString().withMessage('La dirección debe ser texto'),
-  body('ciudad')
+    .isString().withMessage('La dirección debe ser texto')
+    .trim(),
+  body('activo')
     .optional()
-    .isString().withMessage('La ciudad debe ser texto'),
-  body('nombreComercial')
-    .optional()
-    .isString().withMessage('Debe ser texto')
-    .trim()
+    .isBoolean().withMessage('Activo debe ser verdadero o falso'),
+  
+  // Middleware para manejar errores de validación
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
+        success: false,
+        error: 'Error de validación',
+        details: errors.array().map(err => err.msg)
+      });
+    }
+    next();
+  }
 ];

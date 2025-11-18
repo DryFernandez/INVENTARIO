@@ -8,11 +8,14 @@ const { checkAuth: auth } = require('../Middlewares/auth');
 // Obtener todas las cotizaciones
 router.get('/', auth, async (req, res) => {
   try {
+    console.log('📋 GET /cotizaciones - Usuario:', req.usuario?.id);
     const { estado, cliente } = req.query;
     const filtros = {};
     
     if (estado) filtros.estado = estado;
     if (cliente) filtros.cliente = cliente;
+
+    console.log('🔍 Filtros aplicados:', filtros);
 
     const cotizaciones = await Cotizacion.find(filtros)
       .populate('cliente', 'nombre ruc email')
@@ -20,8 +23,17 @@ router.get('/', auth, async (req, res) => {
       .populate('creadoPor', 'nombre')
       .sort({ fechaCotizacion: -1 });
     
+    console.log('✅ Cotizaciones encontradas:', cotizaciones.length);
+    console.log('📋 Primera cotización (si existe):', cotizaciones[0] ? {
+      id: cotizaciones[0]._id,
+      numero: cotizaciones[0].numeroCotizacion,
+      cliente: cotizaciones[0].cliente?.nombre,
+      total: cotizaciones[0].total
+    } : 'No hay cotizaciones');
+    
     res.json(cotizaciones);
   } catch (error) {
+    console.error('❌ Error en GET /cotizaciones:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -68,6 +80,13 @@ router.get('/:id', auth, async (req, res) => {
 // Crear cotización
 router.post('/', auth, async (req, res) => {
   try {
+    console.log('📝 Datos recibidos para crear cotización:', JSON.stringify(req.body, null, 2));
+    
+    // Validar campos obligatorios mínimos
+    if (!req.body.cliente) {
+      return res.status(400).json({ error: 'El cliente es requerido' });
+    }
+
     // Generar número de cotización
     const ultimaCotizacion = await Cotizacion.findOne().sort({ numeroCotizacion: -1 });
     const numeroCotizacion = ultimaCotizacion 
@@ -79,16 +98,31 @@ router.post('/', auth, async (req, res) => {
     const fechaVencimiento = new Date();
     fechaVencimiento.setDate(fechaVencimiento.getDate() + validezDias);
 
-    const cotizacion = new Cotizacion({
-      ...req.body,
+    // Preparar datos de la cotización con valores por defecto
+    const datoscotizacion = {
       numeroCotizacion,
+      cliente: req.body.cliente,
+      productos: req.body.productos || [], // Array vacío si no hay productos
+      subtotal: req.body.subtotal || 0,
+      impuestos: req.body.impuestos || 0,
+      descuentoGlobal: req.body.descuentoGlobal || 0,
+      total: req.body.total || 0,
       fechaVencimiento,
+      validezDias,
+      condicionesPago: req.body.condicionesPago || '',
+      tiempoEntrega: req.body.tiempoEntrega || '',
+      observaciones: req.body.observaciones || '',
+      estado: 'borrador',
       creadoPor: req.usuario.id
-    });
-    
+    };
+
+    const cotizacion = new Cotizacion(datoscotizacion);
     await cotizacion.save();
+    
+    console.log('✅ Cotización creada exitosamente:', cotizacion.numeroCotizacion);
     res.status(201).json(cotizacion);
   } catch (error) {
+    console.error('❌ Error creando cotización:', error);
     res.status(500).json({ error: error.message });
   }
 });

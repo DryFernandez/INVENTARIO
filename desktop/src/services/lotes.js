@@ -29,6 +29,13 @@ export const lotesService = {
     return handleResponse(response);
   },
 
+  getById: async (id) => {
+    const response = await fetch(`${API_URL}/lotes/${id}`, {
+      headers: getHeaders()
+    });
+    return handleResponse(response);
+  },
+
   getProximosVencer: async (dias = 30) => {
     const response = await fetch(`${API_URL}/lotes/proximos-vencer?dias=${dias}`, {
       headers: getHeaders()
@@ -42,7 +49,8 @@ export const lotesService = {
       headers: getHeaders(),
       body: JSON.stringify(loteData)
     });
-    return handleResponse(response);
+    const result = await handleResponse(response);
+    return result.data || result;
   },
 
   update: async (id, loteData) => {
@@ -51,7 +59,8 @@ export const lotesService = {
       headers: getHeaders(),
       body: JSON.stringify(loteData)
     });
-    return handleResponse(response);
+    const result = await handleResponse(response);
+    return result.data || result;
   },
 
   delete: async (id) => {

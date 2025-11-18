@@ -282,7 +282,7 @@ router.post('/', limpiarCamposVacios, validarProducto, manejarErroresValidacion,
 router.put('/:id', limpiarCamposVacios, validarProducto, manejarErroresValidacion, async (req, res) => {
   try {
     const { id } = req.params;
-    const { sku, nombre } = req.body;
+    const { sku, almacen, stock, stockMinimo, stockMaximo } = req.body;
 
     // Verificar si el SKU ya existe en otro producto
     if (sku) {
@@ -295,22 +295,53 @@ router.put('/:id', limpiarCamposVacios, validarProducto, manejarErroresValidacio
       }
     }
 
+    // Actualizar el producto
     const productoActualizado = await Producto.findByIdAndUpdate(
       id,
       req.body,
       { new: true, runValidators: true }
     );
 
-    if (!productoActualizado || !productoActualizado.estado) {
+    if (!productoActualizado || !productoActualizado.activo) {
       return res.status(404).json({
         success: false,
         error: 'Producto no encontrado'
       });
     }
 
+    // Si se proporciona información de almacén, actualizar ProductoAlmacen
+    if (almacen) {
+      const existeEnAlmacen = await ProductoAlmacen.findOne({
+        producto: id,
+        almacen: almacen
+      });
+
+      if (existeEnAlmacen) {
+        // Actualizar el registro existente
+        if (stock !== undefined) existeEnAlmacen.stock = stock;
+        if (stockMinimo !== undefined) existeEnAlmacen.stockMinimo = stockMinimo;
+        if (stockMaximo !== undefined) existeEnAlmacen.stockMaximo = stockMaximo;
+        await existeEnAlmacen.save();
+      } else {
+        // Crear nuevo registro en ProductoAlmacen
+        await ProductoAlmacen.create({
+          producto: id,
+          almacen: almacen,
+          stock: stock || 0,
+          stockMinimo: stockMinimo || 0,
+          stockMaximo: stockMaximo || 1000
+        });
+      }
+    }
+
+    // Obtener el producto actualizado con toda la información
+    const productoCompleto = await Producto.findById(id)
+      .populate('categoria', 'nombre')
+      .populate('proveedor', 'nombre');
+
     res.status(200).json({
       success: true,
-      data: productoActualizado,
+      data: productoCompleto,
       message: 'Producto actualizado exitosamente'
     });
 
@@ -351,7 +382,7 @@ router.patch('/:id/stock', async (req, res) => {
 
     // 1. Verificar que el producto existe
     const producto = await Producto.findById(id).session(session);
-    if (!producto || !producto.estado) {
+    if (!producto || !producto.activo) {
       await session.abortTransaction();
       session.endSession();
       return res.status(404).json({

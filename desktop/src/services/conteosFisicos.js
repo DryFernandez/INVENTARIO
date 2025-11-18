@@ -42,7 +42,8 @@ export const conteosFisicosService = {
       headers: getHeaders(),
       body: JSON.stringify(conteoData)
     });
-    return handleResponse(response);
+    const result = await handleResponse(response);
+    return result.data || result;
   },
 
   iniciar: async (id) => {

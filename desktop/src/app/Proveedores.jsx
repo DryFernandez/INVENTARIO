@@ -8,6 +8,7 @@ import Modal from '../components/common/Modal'
 import Input from '../components/common/Input'
 import Table from '../components/common/Table'
 import { proveedoresAPI } from '../services/api'
+import { useToast } from '../context/ToastContext'
 import { IoIosAdd } from 'react-icons/io'
 import { FaBoxesStacked } from 'react-icons/fa6'
 
@@ -24,6 +25,7 @@ function Proveedores() {
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const toast = useToast();
 
   useEffect(() => {
     cargarProveedores();
@@ -36,7 +38,7 @@ function Proveedores() {
       setProveedores(data);
     } catch (error) {
       console.error('Error cargando proveedores:', error);
-      alert('Error al cargar proveedores');
+      toast.error('Error al cargar proveedores');
     } finally {
       setLoading(false);
     }
@@ -54,16 +56,16 @@ function Proveedores() {
     try {
       if (isEditing) {
         await proveedoresAPI.update(editingId, formData);
-        alert('Proveedor actualizado');
+        toast.success('Proveedor actualizado exitosamente');
       } else {
         await proveedoresAPI.create(formData);
-        alert('Proveedor creado exitosamente');
+        toast.success('Proveedor creado exitosamente');
       }
       await cargarProveedores();
       resetForm();
     } catch (error) {
       console.error('Error guardando proveedor:', error);
-      alert('Error al guardar el proveedor');
+      toast.error('Error al guardar el proveedor');
     }
   };
 
@@ -81,14 +83,16 @@ function Proveedores() {
   };
 
   const handleDelete = async (proveedor) => {
-    if (window.confirm(`¿Eliminar ${proveedor.nombre}?`)) {
+    if (window.confirm(`¿Estás seguro de que deseas eliminar el proveedor "${proveedor.nombre}"?`)) {
       try {
-        await proveedoresAPI.delete(proveedor._id);
+        console.log('🗑️ Iniciando eliminación de proveedor:', proveedor._id);
+        const response = await proveedoresAPI.delete(proveedor._id);
+        console.log('✅ Respuesta de eliminación:', response);
         await cargarProveedores();
-        alert('Proveedor eliminado');
+        toast.success('Proveedor eliminado exitosamente');
       } catch (error) {
-        console.error('Error eliminando proveedor:', error);
-        alert('Error al eliminar el proveedor');
+        console.error('❌ Error eliminando proveedor:', error);
+        toast.error(`Error al eliminar el proveedor: ${error.message}`);
       }
     }
   };
